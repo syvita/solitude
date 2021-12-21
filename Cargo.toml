@@ -1,0 +1,10 @@
+[package]
+name = "i2p"
+version = "0.0.1"
+authors = ["Linden", "Asteria", "MooseMan"]
+edition = "2021"
+
+[dependencies]
+sha2 = "0.10.0"
+regex = "1.5.4"
+anyhow = "1.0"
