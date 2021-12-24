@@ -1,6 +1,6 @@
 use std::thread;
 
-use i2p::Tunnel;
+use solitude::Tunnel;
 
 use anyhow::{Result, Context};
 
