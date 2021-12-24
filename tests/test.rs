@@ -21,7 +21,7 @@ fn service_can_be_resolved() -> Result<()> {
         
     let mut new_tunnel = Tunnel::new("can_execute_hello_child".to_string())?;
     
-    new_tunnel.look_up(tunnel.address())?;
+    new_tunnel.look_up(tunnel.address()?)?;
 
     Ok(())
 }
@@ -35,7 +35,7 @@ fn can_connect_to_service() -> Result<()> {
     let test_child_name = [test_name, "_child".to_string()].concat();
     let mut new_tunnel = Tunnel::new(test_child_name)?;
     
-    let destination = new_tunnel.look_up(tunnel.address())?;
+    let destination = new_tunnel.look_up(tunnel.address()?)?;
 
     new_tunnel.send_to(destination, "Hello".to_string())?;
 

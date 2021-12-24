@@ -2,11 +2,10 @@ use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 use std::net::UdpSocket;
 
-mod base32;
-
 use anyhow::{Context, Result};
 use regex;
 use sha2::{Digest, Sha256};
+use data_encoding::{BASE32, Encoding, Specification};
 
 #[derive(Debug)]
 pub struct Tunnel {
@@ -74,19 +73,10 @@ impl Tunnel {
 	fn new_session(&mut self, port: u16) -> Result<()> {
 		let expression = regex::Regex::new(r#"SESSION STATUS RESULT=OK DESTINATION=([^\n]*)"#)?;
 
-		let options = vec![
-			"inbound.length=0",
-			"outbound.length=0",
-			"inbound.lengthVariance=0",
-			"outbound.lengthVariance=0",
-			"inbound.quantity=1",
-			"outbound.quantity=1",
-		];
 		let body = &self.command(&format!(
-			"SESSION CREATE STYLE=DATAGRAM ID={} DESTINATION={} {} PORT={} HOST=0.0.0.0\n",
+			"SESSION CREATE STYLE=RAW ID={} DESTINATION={} PORT={} HOST=0.0.0.0\n",
 			&self.service,
 			&self.private_key,
-			options.join(" "),
 			port
 		))?;
 
@@ -97,12 +87,24 @@ impl Tunnel {
 		Ok(())
 	}
 
-	pub fn address(&self) -> String {
+	pub fn address(&self) -> Result<String> {
+		let mut specification = Specification::new();
+		specification.symbols.push_str("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-~");
+		specification.padding = Some('=');
+
+		let encoder = specification.encoding().unwrap();
+
+		let buffer = encoder.decode(self.public_key.as_bytes())?;
+
 		let mut hasher = Sha256::new();
+		
+		hasher.update(buffer);
 
-		hasher.update(self.public_key.as_bytes());
-
-		base32::encode(&hasher.finalize()).to_string()
+		let mut address = encoder.encode(&hasher.finalize());
+		
+		address.push_str(".b32.i2p");
+		
+		Ok(String::from(address))
 	}
 
 	pub fn close(&self) {
