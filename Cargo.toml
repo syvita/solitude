@@ -1,5 +1,5 @@
 [package]
-name = "i2p"
+name = "solitude"
 version = "0.0.1"
 authors = ["Linden", "Asteria", "MooseMan"]
 edition = "2021"
