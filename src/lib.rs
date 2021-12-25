@@ -91,7 +91,7 @@ impl Session {
 		))?;
 
 		if !expression.is_match(body) {
-			anyhow::bail!("didn't receive a hello response from i2p")
+			bail!("didn't receive a hello response from i2p")
 		}
 
 		Ok(())
