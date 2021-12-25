@@ -36,9 +36,7 @@ impl Tunnel {
 
 		let body = self.command(&format!("NAMING LOOKUP NAME={}\n", address))?;
 
-		println!("{}", body);
-
-		let matches = expression.captures(&body).context("invalid domain")?;
+		let matches = expression.captures(&body).context("could not resolve domain")?;
 		let value = matches
 			.name("value")
 			.context("no return value, possibly an invalid domain")?
@@ -88,19 +86,13 @@ impl Tunnel {
 	}
 
 	pub fn address(&self) -> Result<String> {
-		let mut specification = Specification::new();
-		specification.symbols.push_str("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-~");
-		specification.padding = Some('=');
-
-		let encoder = specification.encoding().unwrap();
-
-		let buffer = encoder.decode(self.public_key.as_bytes())?;
+        let public_key_bytes = decode_base_64(&self.public_key)?;
 
 		let mut hasher = Sha256::new();
 		
-		hasher.update(buffer);
+		hasher.update(public_key_bytes);
 
-		let mut address = encoder.encode(&hasher.finalize());
+		let mut address = BASE32.encode(&hasher.finalize()).trim_end_matches("=").to_string();
 		
 		address.push_str(".b32.i2p");
 		
@@ -114,14 +106,14 @@ impl Tunnel {
 	pub fn send_to(&mut self, address: String, message: String) -> Result<usize> {
 		let length = &self.socket.send_to(
 			format!("3.1 {} {}\n{}", &self.service, address, message).as_bytes(),
-			"localhost:7655",
+			"127.0.0.1:7655",
 		)?;
 
 		Ok(*length)
 	}
 
 	pub fn new(service: String) -> Result<Tunnel> {
-		let stream = TcpStream::connect("localhost:7656")?;
+		let stream = TcpStream::connect("localhost:7656").context("couldn't connect to local SAM bridge")?;
 
 		let socket = UdpSocket::bind(("0.0.0.0", 0))?;
 		let port = socket.local_addr()?.port();
@@ -145,4 +137,16 @@ impl Tunnel {
 
 		Ok(connection)
 	}
+}
+
+fn decode_base_64(base_64_code: &str) -> Result<Vec<u8>> {
+    let mut specification = Specification::new();
+    specification.symbols.push_str("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-~");
+
+    specification.padding = Some('=');
+
+    let encoder = specification.encoding().unwrap();
+    let buffer = encoder.decode(base_64_code.as_bytes())?;
+
+    Ok(buffer)
 }
