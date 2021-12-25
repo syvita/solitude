@@ -2,8 +2,10 @@ use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 use std::net::UdpSocket;
 
+#[macro_use]
+extern crate anyhow;
+
 use anyhow::{Context, Result};
-use regex;
 use sha2::{Digest, Sha256};
 use data_encoding::{BASE32, Specification};
 
@@ -22,7 +24,7 @@ pub struct Tunnel {
 
 impl Tunnel {
 	fn command(&mut self, command: &str) -> Result<String> {
-		self.stream.write(command.as_bytes())?;
+		self.stream.write_all(command.as_bytes())?;
 
 		let mut response = String::new();
 
@@ -49,8 +51,8 @@ impl Tunnel {
 	fn hello(&mut self) -> Result<()> {
 		let expression = regex::Regex::new(r#"HELLO REPLY RESULT=OK VERSION=(.*)\n"#)?;
 
-		if expression.is_match(&self.command("HELLO VERSION MIN=3.0 MAX=3.2\n")?) == false {
-			anyhow::bail!("didn't receive a hello response from i2p")
+		if !expression.is_match(&self.command("HELLO VERSION MIN=3.0 MAX=3.2\n")?) {
+			bail!("didn't receive a hello response from i2p")
 		}
 
 		Ok(())
@@ -60,7 +62,7 @@ impl Tunnel {
 		let expression = regex::Regex::new(r#"DEST REPLY PUB=(?P<public>[^ ]*) PRIV=(?P<private>[^\n]*)"#)?;
 
 		let body = &self.command("DEST GENERATE\n")?;
-		let matches = expression.captures(&body).context("invalid response")?;
+		let matches = expression.captures(body).context("invalid response")?;
 
 		self.public_key = matches.name("public").context("no public key")?.as_str().to_string();
 		self.private_key = matches.name("private").context("no private key")?.as_str().to_string();
@@ -78,7 +80,7 @@ impl Tunnel {
 			port
 		))?;
 
-		if expression.is_match(body) == false {
+		if !expression.is_match(body) {
 			anyhow::bail!("didn't receive a hello response from i2p")
 		}
 
@@ -92,9 +94,9 @@ impl Tunnel {
 		
 		hasher.update(public_key_bytes);
 
-		let address = BASE32.encode(&hasher.finalize()).trim_end_matches("=").to_string();
+		let address = BASE32.encode(&hasher.finalize());
 		
-		Ok(String::from(address.trim_end_matches("=").to_owned() + ".b32.i2p"))
+		Ok(address.trim_end_matches('=').to_owned() + ".b32.i2p")
 	}
 
 	pub fn close(&self) {
@@ -118,14 +120,11 @@ impl Tunnel {
 
 		let mut connection = Tunnel {
 			reader: BufReader::new(stream.try_clone()?),
-			stream: stream,
-
-			socket: socket,
-
+			stream,
+			socket,
 			public_key: String::new(),
 			private_key: String::new(),
-
-			service: service,
+			service,
 		};
 
 		connection.hello()?;
