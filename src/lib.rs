@@ -174,8 +174,6 @@ fn decode_base_64(base_64_code: &str) -> Result<Vec<u8>> {
 		.symbols
 		.push_str("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-~");
 
-	specification.padding = Some('=');
-
 	let encoder = specification.encoding().unwrap();
 	let buffer = encoder.decode(base_64_code.as_bytes())?;
 
