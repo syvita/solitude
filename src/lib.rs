@@ -13,7 +13,7 @@ use data_encoding::{Specification, BASE32};
 use sha2::{Digest, Sha256};
 
 #[derive(Debug)]
-pub struct Tunnel {
+pub struct Session {
 	reader: BufReader<TcpStream>,
 	stream: TcpStream,
 
@@ -25,16 +25,16 @@ pub struct Tunnel {
 	pub service: String,
 }
 
-impl Tunnel {
-	pub fn new(service: String) -> Result<Tunnel> {
-        debug!("creating new tunnel with ID {}", service);
+impl Session {
+	pub fn new(service: String) -> Result<Self> {
+        debug!("creating new session with ID {}", service);
 
 		let stream = TcpStream::connect("localhost:7656").context("couldn't connect to local SAM bridge")?;
 
 		let socket = UdpSocket::bind(("0.0.0.0", 0))?;
 		let port = socket.local_addr()?.port();
 
-		let mut connection = Tunnel {
+		let mut session = Session {
 			reader: BufReader::new(stream.try_clone()?),
 			stream,
 			socket,
@@ -43,15 +43,15 @@ impl Tunnel {
 			service,
 		};
 
-		connection.hello()?;
+		session.hello()?;
 
-		connection.keys()?;
+		session.keys()?;
 
-		connection.new_session(port)?;
+		session.new_session(port)?;
 
-        info!("Created new SAMv3 session {:?}", connection);
+        info!("Created new SAMv3 session {:?}", session);
 
-		Ok(connection)
+		Ok(session)
 	}
 
 	fn hello(&mut self) -> Result<()> {

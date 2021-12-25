@@ -1,4 +1,4 @@
-use solitude;
+use solitude::Session;
 
 fn main() {
 	let arguments: Vec<String> = std::env::args().collect();
@@ -11,9 +11,9 @@ fn main() {
 
 	println!("{}", hostname);
 
-	let mut tunnel = solitude::Tunnel::new("echo_client".to_string()).unwrap();
+	let mut session = Session::new("echo_client".to_string()).unwrap();
 
-	let destination = tunnel.look_up(hostname).unwrap();
+	let destination = session.look_up(hostname).unwrap();
 
-	tunnel.send_to(destination, String::from("Hello World")).unwrap();
+	session.send_to(destination, String::from("Hello World")).unwrap();
 }
