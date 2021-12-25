@@ -2,14 +2,13 @@ use solitude::Tunnel;
 
 use anyhow::{Context, Result};
 
-fn init() -> Result<()> {
-    env_logger::builder().is_test(true).try_init()?;
-    Ok(())
+fn init() {
+    let _ = env_logger::builder().is_test(true).try_init();
 }
 
 #[test]
 fn can_create_tunnel() -> Result<()> {
-    init()?;
+    init();
 
 	let test_name = "can_create_tunnel".to_string();
 
@@ -21,9 +20,9 @@ fn can_create_tunnel() -> Result<()> {
 
 #[test]
 fn service_can_be_resolved() -> Result<()> {
-    init()?;
+    init();
 
-	let test_name = "can_execute_hello".to_string();
+	let test_name = "service_can_be_resolved".to_string();
 
 	let mut tunnel = Tunnel::new(test_name.clone())?;
 
@@ -42,7 +41,7 @@ fn service_can_be_resolved() -> Result<()> {
 
 #[test]
 fn can_send_data_to_service() -> Result<()> {
-    init()?;
+    init();
 
 	let test_name = "can_send_data_to_service".to_string();
 
