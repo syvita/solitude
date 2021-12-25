@@ -8,11 +8,11 @@ fn main() {
 	}
 
 	let hostname = arguments[1].clone();
-	
+
 	println!("{}", hostname);
-	
+
 	let mut tunnel = solitude::Tunnel::new("echo_client".to_string()).unwrap();
-	
+
 	let destination = tunnel.look_up(hostname).unwrap();
 
 	tunnel.send_to(destination, String::from("Hello World")).unwrap();

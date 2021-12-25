@@ -6,8 +6,8 @@ use std::net::UdpSocket;
 extern crate anyhow;
 
 use anyhow::{Context, Result};
+use data_encoding::{Specification, BASE32};
 use sha2::{Digest, Sha256};
-use data_encoding::{BASE32, Specification};
 
 #[derive(Debug)]
 pub struct Tunnel {
@@ -75,9 +75,7 @@ impl Tunnel {
 
 		let body = &self.command(&format!(
 			"SESSION CREATE STYLE=RAW ID={} DESTINATION={} PORT={} HOST=0.0.0.0\n",
-			&self.service,
-			&self.private_key,
-			port
+			&self.service, &self.private_key, port
 		))?;
 
 		if !expression.is_match(body) {
@@ -88,14 +86,14 @@ impl Tunnel {
 	}
 
 	pub fn address(&self) -> Result<String> {
-        let public_key_bytes = decode_base_64(&self.public_key)?;
+		let public_key_bytes = decode_base_64(&self.public_key)?;
 
 		let mut hasher = Sha256::new();
-		
+
 		hasher.update(public_key_bytes);
 
 		let address = BASE32.encode(&hasher.finalize());
-		
+
 		Ok(address.trim_end_matches('=').to_owned() + ".b32.i2p")
 	}
 
@@ -137,13 +135,15 @@ impl Tunnel {
 }
 
 fn decode_base_64(base_64_code: &str) -> Result<Vec<u8>> {
-    let mut specification = Specification::new();
-    specification.symbols.push_str("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-~");
+	let mut specification = Specification::new();
+	specification
+		.symbols
+		.push_str("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-~");
 
-    specification.padding = Some('=');
+	specification.padding = Some('=');
 
-    let encoder = specification.encoding().unwrap();
-    let buffer = encoder.decode(base_64_code.as_bytes())?;
+	let encoder = specification.encoding().unwrap();
+	let buffer = encoder.decode(base_64_code.as_bytes())?;
 
-    Ok(buffer)
+	Ok(buffer)
 }
