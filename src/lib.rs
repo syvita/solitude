@@ -86,7 +86,7 @@ impl Session {
 		let expression = regex::Regex::new(r#"SESSION STATUS RESULT=OK DESTINATION=([^\n]*)"#)?;
 
 		let body = &self.command(&format!(
-			"SESSION CREATE STYLE=RAW ID={} DESTINATION={} PORT={} HOST=0.0.0.0\n",
+			"SESSION CREATE STYLE=DATAGRAM ID={} DESTINATION={} PORT={} HOST=0.0.0.0\n",
 			&self.service, &self.private_key, port
 		))?;
 
