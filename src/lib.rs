@@ -27,7 +27,7 @@ pub struct Tunnel {
 
 impl Tunnel {
 	pub fn new(service: String) -> Result<Tunnel> {
-        trace!("creating new tunnel with ID {}", service);
+        debug!("creating new tunnel with ID {}", service);
 
 		let stream = TcpStream::connect("localhost:7656").context("couldn't connect to local SAM bridge")?;
 
@@ -55,7 +55,7 @@ impl Tunnel {
 	}
 
 	fn hello(&mut self) -> Result<()> {
-        trace!("sam connection with ID {} executed hello", self.service);
+        debug!("sam connection with ID {} executed hello", self.service);
 
 		let expression = regex::Regex::new(r#"HELLO REPLY RESULT=OK VERSION=(.*)\n"#)?;
 
@@ -67,7 +67,7 @@ impl Tunnel {
 	}
 
 	fn keys(&mut self) -> Result<()> {
-        trace!("sam connection with ID {} got keys", self.service);
+        debug!("sam connection with ID {} got keys", self.service);
 
 		let expression = regex::Regex::new(r#"DEST REPLY PUB=(?P<public>[^ ]*) PRIV=(?P<private>[^\n]*)"#)?;
 
@@ -81,7 +81,7 @@ impl Tunnel {
 	}
 
 	fn new_session(&mut self, port: u16) -> Result<()> {
-        trace!("sam connection with ID {} made a new session", self.service);
+        debug!("sam connection with ID {} made a new session", self.service);
 
 		let expression = regex::Regex::new(r#"SESSION STATUS RESULT=OK DESTINATION=([^\n]*)"#)?;
 
@@ -104,19 +104,21 @@ impl Tunnel {
 
 		hasher.update(public_key_bytes);
 
-		let address = BASE32.encode(&hasher.finalize());
+		let address = BASE32.encode(&hasher.finalize()).to_lowercase();
 
 		Ok(address.trim_end_matches('=').to_owned() + ".b32.i2p")
 	}
 
 	pub fn close(&mut self) -> Result<()> {
-        self.command(&format!("SESSION REMOVE ID={}", self.service))?;
+        debug!("sam connection with ID {} is closing session", self.service);
+
+        self.command_with_no_response("QUIT")?;
 
         Ok(())
 	}
 
 	pub fn send_to(&mut self, address: String, message: String) -> Result<usize> {
-        trace!("sam connection with ID {} is sending data to {}", self.service, address);
+        debug!("sam connection with ID {} is sending data to {}", self.service, address);
 
 		let length = &self.socket.send_to(
 			format!("3.1 {} {}\n{}", &self.service, address, message).as_bytes(),
@@ -126,20 +128,29 @@ impl Tunnel {
 		Ok(*length)
 	}
 
+    fn command_with_no_response(&mut self, command: &str) -> Result<()> {
+        debug!("sam connection with ID {} is executing command {}", self.service, command);
+
+        self.stream.write_all(command.as_bytes())?;
+
+        Ok(())
+    }
+
 	fn command(&mut self, command: &str) -> Result<String> {
-        trace!("sam connection with ID {} is executing command {}", self.service, command);
+        debug!("sam connection with ID {} is executing command {}", self.service, command);
 
 		self.stream.write_all(command.as_bytes())?;
 
 		let mut response = String::new();
 
-		let _ = self.reader.read_line(&mut response)?;
+		self.reader.read_line(&mut response)?;
+        trace!("sam connection with ID {} sent command {} and got response {}", self.service, command, response);
 
 		Ok(response)
 	}
 
 	pub fn look_up(&mut self, address: String) -> Result<String> {
-        trace!("sam connection with ID {} is looking up address {}", self.service, address);
+        debug!("sam connection with ID {} is looking up address {}", self.service, address);
 
 		let expression = regex::Regex::new(r#"NAMING REPLY RESULT=OK NAME=([^ ]*) VALUE=(?P<value>[^\n]*)\n"#)?;
 
