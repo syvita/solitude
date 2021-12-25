@@ -5,7 +5,7 @@ use std::net::UdpSocket;
 use anyhow::{Context, Result};
 use regex;
 use sha2::{Digest, Sha256};
-use data_encoding::{BASE32, Encoding, Specification};
+use data_encoding::{BASE32, Specification};
 
 #[derive(Debug)]
 pub struct Tunnel {
@@ -92,11 +92,9 @@ impl Tunnel {
 		
 		hasher.update(public_key_bytes);
 
-		let mut address = BASE32.encode(&hasher.finalize()).trim_end_matches("=").to_string();
+		let address = BASE32.encode(&hasher.finalize()).trim_end_matches("=").to_string();
 		
-		address.push_str(".b32.i2p");
-		
-		Ok(String::from(address))
+		Ok(String::from(address.trim_end_matches("=").to_owned() + ".b32.i2p"))
 	}
 
 	pub fn close(&self) {
