@@ -2,7 +2,7 @@ use solitude::{DatagramMessage, Session};
 
 use std::net::UdpSocket;
 
-use anyhow::{Context, Result};
+use anyhow::{Result};
 
 fn init() {
 	let _ = env_logger::builder().is_test(true).format_module_path(true).try_init();
@@ -12,7 +12,7 @@ fn init() {
 fn can_create_session() -> Result<()> {
 	init();
 
-	let test_name = "can_create_session ".to_string();
+	let test_name = "can_create_session".to_string();
 
 	let mut session = Session::new(test_name, "0.0.0.0", 0)?;
 
@@ -67,7 +67,7 @@ fn can_create_datagram_message() -> Result<()> {
 	init();
 
 	let contents: [u8; 32] = rand::random();
-	let datagram_message = DatagramMessage::new("test", "test_destination", contents.to_vec());
+	let _datagram_message = DatagramMessage::new("test", "test_destination", contents.to_vec());
 
 	Ok(())
 }
@@ -112,10 +112,8 @@ fn create_two_udp_sockets() -> Result<(UdpSocket, UdpSocket)> {
 }
 
 fn create_two_sessions(test_name: &str, first_port: u16, second_port: u16) -> Result<(Session, Session)> {
-	let session = Session::new(test_name.to_owned(), "0.0.0.0", first_port)?;
+	let first_session = Session::new(format!("{}_first", test_name), "0.0.0.0", first_port)?;
+	let second_session = Session::new(format!("{}_second", test_name), "0.0.0.0", second_port)?;
 
-	let test_child_name = [test_name.to_owned(), "_child".to_string()].concat();
-	let second_session = Session::new(test_child_name, "0.0.0.0", second_port)?;
-
-	Ok((session, second_session))
+	Ok((first_session, second_session))
 }
