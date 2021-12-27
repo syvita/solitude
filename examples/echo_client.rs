@@ -25,10 +25,17 @@ fn main() {
 	let destination = session.look_up(hostname).unwrap();
 
 	let datagram = DatagramMessage::new("echo_client", &destination, b"Hello World!".to_vec());
-	info!("Sending datagram: {:x?}", datagram);
+    info!("Sending datagram");
+	debug!("datagram: {:x?}", datagram);
 
 	let datagram_bytes = datagram.serialize();
 
-	udp_socket.send(&datagram_bytes).unwrap();
-	info!("Sent datagram");
+    // Sends 10 datagrams over one second. Datagrams fail occasionally, this makes it likely that
+    // at least on will go through
+    for i in 0..10 {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
+	    udp_socket.send(&datagram_bytes).unwrap();
+	    info!("Sent datagram");
+    }
 }
