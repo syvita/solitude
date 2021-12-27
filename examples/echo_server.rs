@@ -6,7 +6,7 @@ use solitude::{DatagramMessage, Session};
 use std::net::UdpSocket;
 
 fn main() {
-	env_logger::init();
+	env_logger::builder().filter_level(log::LevelFilter::Info).parse_env("RUST_LOG").init();
 
 	let udp_socket = UdpSocket::bind("0.0.0.0:0").unwrap();
 	udp_socket.connect("127.0.0.1:7655").unwrap();

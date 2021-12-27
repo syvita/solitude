@@ -6,7 +6,7 @@ use solitude::{DatagramMessage, Session};
 use std::net::UdpSocket;
 
 fn main() {
-	env_logger::init();
+	env_logger::builder().filter_level(log::LevelFilter::Info).parse_env("RUST_LOG").init();
 
 	let arguments: Vec<String> = std::env::args().collect();
 
