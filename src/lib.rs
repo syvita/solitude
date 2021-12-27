@@ -110,11 +110,15 @@ impl Session {
 	}
 
 	pub fn close(&mut self) -> Result<()> {
-        debug!("sam connection with ID {} is closing session", self.service);
+		debug!("sam connection with ID {} is closing i2p", self.service);
 
-        self.command_with_no_response("QUIT")?;
+		let body = &self.command("QUIT")?;
 
-        Ok(())
+		if body != "QUIT STATUS RESULT=OK MESSAGE=bye" {
+			bail!("failed to quit, are you using an up-to-date version of i2prouter?");
+		}
+
+		Ok(())
 	}
 
 	pub fn send_to(&mut self, address: String, message: String) -> Result<usize> {
@@ -127,14 +131,6 @@ impl Session {
 
 		Ok(*length)
 	}
-
-    fn command_with_no_response(&mut self, command: &str) -> Result<()> {
-        debug!("sam connection with ID {} is executing command {}", self.service, command);
-
-        self.stream.write_all(command.as_bytes())?;
-
-        Ok(())
-    }
 
 	fn command(&mut self, command: &str) -> Result<String> {
         debug!("sam connection with ID {} is executing command {}", self.service, command);
