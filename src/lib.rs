@@ -27,7 +27,7 @@ pub struct Session {
 
 impl Session {
 	pub fn new(service: String) -> Result<Self> {
-        debug!("creating new session with ID {}", service);
+		debug!("creating new session with ID {}", service);
 
 		let stream = TcpStream::connect("localhost:7656").context("couldn't connect to local SAM bridge")?;
 
@@ -49,13 +49,13 @@ impl Session {
 
 		session.new_session(port)?;
 
-        info!("Created new SAMv3 session {:?}", session);
+		info!("Created new SAMv3 session {:?}", session);
 
 		Ok(session)
 	}
 
 	fn hello(&mut self) -> Result<()> {
-        debug!("sam connection with ID {} executed hello", self.service);
+		debug!("sam connection with ID {} executed hello", self.service);
 
 		let expression = regex::Regex::new(r#"HELLO REPLY RESULT=OK VERSION=(.*)\n"#)?;
 
@@ -67,7 +67,7 @@ impl Session {
 	}
 
 	fn keys(&mut self) -> Result<()> {
-        debug!("sam connection with ID {} got keys", self.service);
+		debug!("sam connection with ID {} got keys", self.service);
 
 		let expression = regex::Regex::new(r#"DEST REPLY PUB=(?P<public>[^ ]*) PRIV=(?P<private>[^\n]*)"#)?;
 
@@ -81,7 +81,7 @@ impl Session {
 	}
 
 	fn new_session(&mut self, port: u16) -> Result<()> {
-        debug!("sam connection with ID {} made a new session", self.service);
+		debug!("sam connection with ID {} made a new session", self.service);
 
 		let expression = regex::Regex::new(r#"SESSION STATUS RESULT=OK DESTINATION=([^\n]*)"#)?;
 
@@ -122,7 +122,7 @@ impl Session {
 	}
 
 	pub fn send_to(&mut self, address: String, message: String) -> Result<usize> {
-        debug!("sam connection with ID {} is sending data to {}", self.service, address);
+		debug!("sam connection with ID {} is sending data to {}", self.service, address);
 
 		let length = &self.socket.send_to(
 			format!("3.1 {} {}\n{}", &self.service, address, message).as_bytes(),
@@ -133,20 +133,25 @@ impl Session {
 	}
 
 	fn command(&mut self, command: &str) -> Result<String> {
-        debug!("sam connection with ID {} is executing command {}", self.service, command);
+		debug!("sam connection with ID {} is executing command {}", self.service, command);
 
 		self.stream.write_all(command.as_bytes())?;
 
 		let mut response = String::new();
 
 		self.reader.read_line(&mut response)?;
-        trace!("sam connection with ID {} sent command {} and got response {}", self.service, command, response);
+		trace!(
+			"sam connection with ID {} sent command {} and got response {}",
+			self.service,
+			command,
+			response
+		);
 
 		Ok(response)
 	}
 
 	pub fn look_up(&mut self, address: String) -> Result<String> {
-        debug!("sam connection with ID {} is looking up address {}", self.service, address);
+		debug!("sam connection with ID {} is looking up address {}", self.service, address);
 
 		let expression = regex::Regex::new(r#"NAMING REPLY RESULT=OK NAME=([^ ]*) VALUE=(?P<value>[^\n]*)\n"#)?;
 
