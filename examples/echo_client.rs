@@ -32,7 +32,7 @@ fn main() {
 
     // Sends 10 datagrams over one second. Datagrams fail occasionally, this makes it likely that
     // at least on will go through
-    for i in 0..10 {
+    for _ in 0..10 {
         std::thread::sleep(std::time::Duration::from_millis(100));
 
 	    udp_socket.send(&datagram_bytes).unwrap();
