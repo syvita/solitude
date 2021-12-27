@@ -41,7 +41,7 @@ impl Session {
 
 		session.keys()?;
 
-		session.new_session(forwarding_address, forwarding_port)?;
+		session.bridge(forwarding_address, forwarding_port)?;
 
         info!("Created new SAMv3 session {:?}", session);
 
@@ -74,7 +74,7 @@ impl Session {
 		Ok(())
 	}
 
-	fn new_session(&mut self, forwarding_address: &str, port: u16) -> Result<()> {
+	fn bridge(&mut self, forwarding_address: &str, port: u16) -> Result<()> {
         debug!("sam connection with ID {} made a new session", self.service);
 
 		let expression = regex::Regex::new(r#"SESSION STATUS RESULT=OK DESTINATION=([^\n]*)"#)?;
