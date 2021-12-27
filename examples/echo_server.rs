@@ -8,12 +8,12 @@ use std::net::UdpSocket;
 fn main() {
 	env_logger::builder().filter_level(log::LevelFilter::Info).parse_env("RUST_LOG").init();
 
-	let udp_socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+	let udp_socket = UdpSocket::bind("127.0.0.1:0").unwrap();
 	udp_socket.connect("127.0.0.1:7655").unwrap();
 
 	let port = udp_socket.local_addr().unwrap().port();
 
-	let session = Session::new(String::from("echo_server"), "0.0.0.0", port).unwrap();
+	let session = Session::new(String::from("echo_server"), "127.0.0.1", port).unwrap();
 
 	info!("Listening on i2p at {}", session.address().unwrap());
 
