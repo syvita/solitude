@@ -1,24 +1,42 @@
+#[macro_use]
+extern crate log;
+
+use solitude::{DatagramMessage, Session};
+
 use std::net::UdpSocket;
 
-use solitude::Session;
-
 fn main() {
-	let socket = UdpSocket::bind("0.0.0.0:0").expect("failed to bind");
-	
-	let port = socket.local_addr().expect("failed to get address").port();
-	
-	let session = Session::new(String::from("echo_server"), "0.0.0.0", port).expect("couldn't create session");
+	env_logger::init();
 
-	println!("listening at 0.0.0.0:{} or {}", port, session.address().unwrap());
+	let udp_socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+	udp_socket.connect("127.0.0.1:7655").unwrap();
+	let port = udp_socket.local_addr().unwrap().port();
 
-	let mut buffer = [0; 2048];
+	let session = Session::new(String::from("echo_server"), "0.0.0.0", port).unwrap();
+
+	info!("Listening on i2p at {}", session.address().unwrap());
+
+	let mut buffer = [0u8; 2048];
 
 	loop {
-		let (frame, source) = socket.recv_from(&mut buffer).unwrap();
+		info!("Waiting to receive");
+		let frame = udp_socket.recv(&mut buffer).unwrap();
 		let buffer = &mut buffer[..frame];
 
-		println!("from: {:?}, buffer: {:?}", source, buffer);
+		let received_datagram = match DatagramMessage::from_bytes("echo_server", &buffer) {
+			Ok(received_datagram) => received_datagram,
+			Err(_) => {
+				debug!("Received a datagram but could not deserialize it");
+				continue;
+			}
+		};
 
-		socket.send_to(buffer, &source).unwrap();
+		info!("Received datagram: {}", std::str::from_utf8(&received_datagram.contents).unwrap());
+
+		let datagram_to_send = DatagramMessage::new("echo_server", &received_datagram.destination, received_datagram.contents);
+
+		let datagram_to_send_bytes = datagram_to_send.serialize();
+
+		udp_socket.send(&datagram_to_send_bytes).unwrap();
 	}
 }
