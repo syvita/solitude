@@ -14,11 +14,11 @@ fn main() {
 		panic!("must supply I2P hostname, i.e. eva example.i2p");
 	}
 
-	let udp_socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+	let udp_socket = UdpSocket::bind("127.0.0.1:0").unwrap();
 	udp_socket.connect("127.0.0.1:7655").unwrap();
 	let port = udp_socket.local_addr().unwrap().port();
 
-	let mut session = Session::new("echo_client".to_string(), "0.0.0.0", port).unwrap();
+	let mut session = Session::new("echo_client".to_string(), "127.0.0.1", port).unwrap();
 
 	let hostname = arguments[1].to_owned();
 
