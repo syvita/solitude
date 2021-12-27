@@ -23,6 +23,8 @@ fn main() {
 		let frame = udp_socket.recv(&mut buffer).unwrap();
 		let buffer = &mut buffer[..frame];
 
+        debug!("Received datagram bytes: {:x?}", buffer);
+
 		let received_datagram = match DatagramMessage::from_bytes("echo_server", &buffer) {
 			Ok(received_datagram) => received_datagram,
 			Err(_) => {
