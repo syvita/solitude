@@ -188,19 +188,9 @@ impl DatagramMessage {
 		// Split the buffer, using the first 0x0a (newline) byte as the delimiter
 		let split_buffer: Vec<&[u8]> = buffer.splitn(2, |byte| *byte == 0x0a).collect();
 
-		let header_bytes = split_buffer.iter().nth(0).context("Cannot deserialize an empty buffer")?;
+		let destination_bytes = split_buffer.iter().nth(0).context("Cannot deserialize an empty buffer")?;
 
-		let header = String::from_utf8(header_bytes.to_vec())?;
-
-		let expression = regex::Regex::new(r#"DATAGRAM RECEIVED DESTINATION=(?P<destination>[^ ]*) SIZE=(?P<size>[^\n]*)"#)?;
-
-		let matches = expression.captures(&header).context("Could not find fields in received datagram")?;
-
-		let destination = matches
-			.name("destination")
-			.context("Could not find destination in received datagram")?
-			.as_str()
-			.to_owned();
+		let destination = String::from_utf8(destination_bytes.to_vec())?;
 
 		let contents = split_buffer
 			.iter()

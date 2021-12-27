@@ -10,6 +10,7 @@ fn main() {
 
 	let udp_socket = UdpSocket::bind("0.0.0.0:0").unwrap();
 	udp_socket.connect("127.0.0.1:7655").unwrap();
+
 	let port = udp_socket.local_addr().unwrap().port();
 
 	let session = Session::new(String::from("echo_server"), "0.0.0.0", port).unwrap();
@@ -23,7 +24,7 @@ fn main() {
 		let frame = udp_socket.recv(&mut buffer).unwrap();
 		let buffer = &mut buffer[..frame];
 
-        debug!("Received datagram bytes: {:x?}", buffer);
+        debug!("Received datagram bytes: {:02x?}", buffer);
 
 		let received_datagram = match DatagramMessage::from_bytes("echo_server", &buffer) {
 			Ok(received_datagram) => received_datagram,
