@@ -173,7 +173,7 @@ impl DatagramMessage {
 	}
 
 	pub fn serialize(&self) -> Vec<u8> {
-		trace!("serializing datagram message");
+		debug!("serializing datagram message");
 
 		let header = format!("3.0 {} {}\n", self.session_id, self.destination);
 		let mut bytes = header.as_bytes().to_vec();
@@ -183,7 +183,7 @@ impl DatagramMessage {
 	}
 
 	pub fn from_bytes(session_id: &str, buffer: &[u8]) -> Result<Self> {
-		trace!("deserializing datagram message");
+		debug!("deserializing datagram message");
 
 		// Split the buffer, using the first 0x0a (newline) byte as the delimiter
 		let split_buffer: Vec<&[u8]> = buffer.splitn(2, |byte| *byte == 0x0a).collect();
