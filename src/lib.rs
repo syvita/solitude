@@ -157,6 +157,12 @@ impl Session {
 	}
 }
 
+enum SessionStyle {
+    Datagram,
+    Raw,
+    Stream,
+}
+
 #[derive(Debug, PartialEq)]
 pub struct DatagramMessage {
 	pub session_id: String,
