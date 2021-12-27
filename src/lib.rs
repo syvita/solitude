@@ -1,5 +1,8 @@
-use std::io::{BufRead, BufReader, Write};
-use std::net::TcpStream;
+use std::{
+    io::{BufRead, BufReader, Write},
+    net::TcpStream,
+    time::Duration,
+};
 
 #[macro_use]
 extern crate anyhow;
@@ -28,6 +31,7 @@ impl Session {
 		debug!("creating new session with ID {}", service);
 
 		let stream = TcpStream::connect("localhost:7656").context("couldn't connect to local SAM bridge")?;
+        stream.set_read_timeout(Some(Duration::from_secs(50)))?;
 
 		let mut session = Session {
 			reader: BufReader::new(stream.try_clone()?),
@@ -49,7 +53,7 @@ impl Session {
 	}
 
 	fn hello(&mut self) -> Result<()> {
-		debug!("sam connection with ID {} executed hello", self.service);
+		debug!("sam connection with ID {} is executing hello", self.service);
 
 		let expression = regex::Regex::new(r#"HELLO REPLY RESULT=OK VERSION=(.*)\n"#)?;
 
@@ -61,7 +65,7 @@ impl Session {
 	}
 
 	fn keys(&mut self) -> Result<()> {
-		debug!("sam connection with ID {} got keys", self.service);
+		debug!("sam connection with ID {} is getting keys", self.service);
 
 		let expression = regex::Regex::new(r#"DEST REPLY PUB=(?P<public>[^ ]*) PRIV=(?P<private>[^\n]*)"#)?;
 
@@ -75,7 +79,7 @@ impl Session {
 	}
 
 	fn bridge(&mut self, forwarding_address: &str, port: u16) -> Result<()> {
-		debug!("sam connection with ID {} made a new session", self.service);
+		debug!("sam connection with ID {} is making a bridge", self.service);
 
 		let expression = regex::Regex::new(r#"SESSION STATUS RESULT=OK DESTINATION=([^\n]*)"#)?;
 
@@ -123,6 +127,7 @@ impl Session {
 		let mut response = String::new();
 
 		self.reader.read_line(&mut response)?;
+
 		trace!(
 			"sam connection with ID {} sent command {} and got response {}",
 			self.service,
