@@ -159,7 +159,7 @@ impl Session {
 		let matches = expression.captures(&response).context("Could not regex SAMv3's response")?;
 
 		let result = matches
-			.name("RESULT")
+			.name("result")
 			.context("Could not find RESULT variable in response")?
 			.as_str();
 
