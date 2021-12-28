@@ -6,7 +6,10 @@ use solitude::{DatagramMessage, Session};
 use std::net::UdpSocket;
 
 fn main() {
-	env_logger::builder().filter_level(log::LevelFilter::Info).parse_env("RUST_LOG").init();
+	env_logger::builder()
+		.filter_level(log::LevelFilter::Info)
+		.parse_env("RUST_LOG")
+		.init();
 
 	let udp_socket = UdpSocket::bind("127.0.0.1:0").unwrap();
 	udp_socket.connect("127.0.0.1:7655").unwrap();
@@ -24,7 +27,7 @@ fn main() {
 		let frame = udp_socket.recv(&mut buffer).unwrap();
 		let buffer = &mut buffer[..frame];
 
-        debug!("Received datagram bytes: {:02x?}", buffer);
+		debug!("Received datagram bytes: {:02x?}", buffer);
 
 		let received_datagram = match DatagramMessage::from_bytes("echo_server", &buffer) {
 			Ok(received_datagram) => received_datagram,
