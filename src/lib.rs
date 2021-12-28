@@ -47,7 +47,7 @@ impl Session {
 
 		session.bridge(forwarding_address, forwarding_port)?;
 
-		info!("Created new SAMv3 session {:?}", session);
+		info!("Created new SAMv3 session");
 
 		Ok(session)
 	}
