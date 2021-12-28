@@ -93,7 +93,7 @@ impl Session {
 		        	port,
 		        	forwarding_address
 		        ))?;
-			}
+			},
 			SessionStyle::Stream => {
 		        self.command(&format!(
 		        	"SESSION CREATE STYLE=STREAM ID={} DESTINATION={}\n",
@@ -106,7 +106,7 @@ impl Session {
 		        	port.to_string(),
 		        	forwarding_address
 		        )).context("Could not forward session")?;
-		    }
+		    },
 		};
 
 		Ok(())
