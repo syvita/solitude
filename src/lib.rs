@@ -37,7 +37,7 @@ impl Session {
 		let mut session = Session {
 			reader: BufReader::new(stream.try_clone()?),
 			stream,
-			session_style,
+			session_style: session_style.to_owned(),
 			public_key: String::new(),
 			private_key: String::new(),
 			service,
@@ -188,7 +188,7 @@ impl Session {
 	}
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SessionStyle {
 	Datagram,
 	Raw,
