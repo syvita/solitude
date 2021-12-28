@@ -135,7 +135,7 @@ impl Session {
 			response
 		);
 
-		let expression = regex::Regex::new(r#"(.*) RESULT=(?P<result>[^ ]*) (.*)"#)?;
+		let expression = regex::Regex::new(r#"REPLY(.*)(RESULT=(?P<result>[^ ]*)(.*)|([^\n]*))fi"#)?;
 
 		let matches = expression.captures(&response).context("Could not regex SAMv3's response")?;
 
