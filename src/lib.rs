@@ -1,7 +1,7 @@
 use std::{
-    io::{BufRead, BufReader, Write},
-    net::TcpStream,
-    time::Duration,
+	io::{BufRead, BufReader, Write},
+	net::TcpStream,
+	time::Duration,
 };
 
 #[macro_use]
@@ -31,7 +31,7 @@ impl Session {
 		debug!("creating new session with ID {}", service);
 
 		let stream = TcpStream::connect("localhost:7656").context("couldn't connect to local SAM bridge")?;
-        stream.set_read_timeout(Some(Duration::from_secs(50)))?;
+		stream.set_read_timeout(Some(Duration::from_secs(50)))?;
 
 		let mut session = Session {
 			reader: BufReader::new(stream.try_clone()?),
@@ -135,16 +135,19 @@ impl Session {
 			response
 		);
 
-        let expression = regex::Regex::new(r#"(.*) RESULT=(?P<result>[^ ]*) (.*)"#)?;
+		let expression = regex::Regex::new(r#"(.*) RESULT=(?P<result>[^ ]*) (.*)"#)?;
 
-        let matches = expression.captures(&response).context("Could not regex SAMv3's response")?;
+		let matches = expression.captures(&response).context("Could not regex SAMv3's response")?;
 
-        let result = matches.name("RESULT").context("Could not find RESULT variable in response")?.as_str();
+		let result = matches
+			.name("RESULT")
+			.context("Could not find RESULT variable in response")?
+			.as_str();
 
-        match result {
-            "OK" => Ok(response),
-            _ => bail!(response),
-        }
+		match result {
+			"OK" => Ok(response),
+			_ => bail!(response),
+		}
 	}
 
 	pub fn look_up(&mut self, address: String) -> Result<String> {
