@@ -32,9 +32,19 @@ impl DatagramMessage {
 		// Split the buffer, using the first 0x0a (newline) byte as the delimiter
 		let split_buffer: Vec<&[u8]> = buffer.splitn(2, |byte| *byte == 0x0a).collect();
 
-		let destination_bytes = split_buffer.iter().nth(0).context("Cannot deserialize an empty buffer")?;
+		let header_bytes = split_buffer.iter().nth(0).context("Cannot deserialize an empty buffer")?;
 
-		let destination = String::from_utf8(destination_bytes.to_vec())?;
+		let header = String::from_utf8(header_bytes.to_vec())?;
+
+        let expression = regex::Regex::new("^[^ ]+")?;
+
+        let destination = expression
+            .captures(&header)
+            .context("Could not regex header")?
+            .get(0)
+            .context("Could not find destination in header")?
+            .as_str()
+            .to_owned();
 
 		let contents = split_buffer
 			.iter()

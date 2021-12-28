@@ -18,7 +18,6 @@ mod datagram;
 pub use datagram::DatagramMessage;
 
 mod stream;
-pub use stream::StreamMessage;
 
 /// Creates a SAMv3 session with local i2p daemon.
 ///
