@@ -85,28 +85,30 @@ impl Session {
 
 		match self.session_style {
 			SessionStyle::Datagram | SessionStyle::Raw => {
-		        self.command(&format!(
-		        	"SESSION CREATE STYLE={} ID={} DESTINATION={} PORT={} HOST={}\n",
-		        	self.session_style.to_string(),
-		        	&self.service,
-		        	&self.private_key,
-		        	port,
-		        	forwarding_address
-		        ))?;
-			},
+				self.command(&format!(
+					"SESSION CREATE STYLE={} ID={} DESTINATION={} PORT={} HOST={}\n",
+					self.session_style.to_string(),
+					&self.service,
+					&self.private_key,
+					port,
+					forwarding_address
+				))?;
+			}
 			SessionStyle::Stream => {
-		        self.command(&format!(
-		        	"SESSION CREATE STYLE=STREAM ID={} DESTINATION={}\n",
-		        	self.service, self.private_key
-		        )).context("Could not create session")?;
+				self.command(&format!(
+					"SESSION CREATE STYLE=STREAM ID={} DESTINATION={}\n",
+					self.service, self.private_key
+				))
+				.context("Could not create session")?;
 
-		        self.command(&format!(
-		        	"SESSION FORWARD ID={} PORT={} HOST={}",
-		        	self.service,
-		        	port.to_string(),
-		        	forwarding_address
-		        )).context("Could not forward session")?;
-		    },
+				self.command(&format!(
+					"SESSION FORWARD ID={} PORT={} HOST={}",
+					self.service,
+					port.to_string(),
+					forwarding_address
+				))
+				.context("Could not forward session")?;
+			}
 		};
 
 		Ok(())
@@ -152,16 +154,19 @@ impl Session {
 			response
 		);
 
-        let expression = regex::Regex::new(r#"(.*) RESULT=(?P<result>[^ ]*) (.*)"#)?;
+		let expression = regex::Regex::new(r#"(.*) RESULT=(?P<result>[^ ]*) (.*)"#)?;
 
-        let matches = expression.captures(&response).context("Could not regex SAMv3's response")?;
+		let matches = expression.captures(&response).context("Could not regex SAMv3's response")?;
 
-        let result = matches.name("RESULT").context("Could not find RESULT variable in response")?.as_str();
+		let result = matches
+			.name("RESULT")
+			.context("Could not find RESULT variable in response")?
+			.as_str();
 
-        match result {
-            "OK" => Ok(response),
-            _ => bail!(response),
-        }
+		match result {
+			"OK" => Ok(response),
+			_ => bail!(response),
+		}
 	}
 
 	pub fn look_up(&mut self, address: String) -> Result<String> {
