@@ -83,76 +83,31 @@ impl Session {
 	fn bridge(&mut self, forwarding_address: &str, port: u16) -> Result<()> {
 		debug!("sam connection with ID {} is making a bridge", self.service);
 
-		let expression = regex::Regex::new(r#"SESSION STATUS RESULT=OK DESTINATION=([^\n]*)"#)?;
-
 		match self.session_style {
 			SessionStyle::Datagram | SessionStyle::Raw => {
-				self.bridge_datagram_or_raw(forwarding_address, port)?;
+		        self.command(&format!(
+		        	"SESSION CREATE STYLE={} ID={} DESTINATION={} PORT={} HOST={}\n",
+		        	self.session_style.to_string(),
+		        	&self.service,
+		        	&self.private_key,
+		        	port,
+		        	forwarding_address
+		        ))?;
 			}
 			SessionStyle::Stream => {
-				self.bridge_stream(forwarding_address, port)?;
-			}
+		        self.command(&format!(
+		        	"SESSION CREATE STYLE=STREAM ID={} DESTINATION={}\n",
+		        	self.service, self.private_key
+		        )).context("Could not create session")?;
+
+		        self.command(&format!(
+		        	"SESSION FORWARD ID={} PORT={} HOST={}",
+		        	self.service,
+		        	port.to_string(),
+		        	forwarding_address
+		        )).context("Could not forward session")?;
+		    }
 		};
-
-		let body = &self.command(&format!(
-			"SESSION CREATE STYLE=DATAGRAM ID={} DESTINATION={} PORT={} HOST={}\n",
-			&self.service, &self.private_key, port, forwarding_address
-		))?;
-
-		if !expression.is_match(body) {
-			bail!("didn't receive a hello response from i2p")
-		}
-
-		Ok(())
-	}
-
-	fn bridge_datagram_or_raw(&mut self, forwarding_address: &str, port: u16) -> Result<()> {
-		if self.session_style == SessionStyle::Stream {
-			bail!("bridge_datagram_or_raw cannot be used SessionStyle::Stream");
-		}
-
-		let body = &self.command(&format!(
-			"SESSION CREATE STYLE={} ID={} DESTINATION={} PORT={} HOST={}\n",
-			self.session_style.to_string(),
-			&self.service,
-			&self.private_key,
-			port,
-			forwarding_address
-		))?;
-
-		let expression = regex::Regex::new(r#"SESSION STATUS RESULT=OK DESTINATION=([^\n]*)"#)?;
-		if !expression.is_match(body) {
-			bail!("didn't receive a hello response from i2p")
-		}
-
-		Ok(())
-	}
-
-	fn bridge_stream(&mut self, forwarding_address: &str, port: u16) -> Result<()> {
-		if self.session_style != SessionStyle::Stream {
-			bail!("bridge_stream can only be used for SessionStyle::Stream");
-		}
-
-		let body = self.command(&format!(
-			"SESSION CREATE STYLE=STREAM ID={} DESTINATION={}\n",
-			self.service, self.private_key
-		))?;
-
-		let expression = regex::Regex::new(r#"SESSION STATUS RESULT=OK DESTINATION=([^\n]*)"#)?;
-		if !expression.is_match(&body) {
-			bail!("could not create session: {}", body);
-		}
-
-		let reply = self.command(&format!(
-			"SESSION FORWARD ID={} PORT={} HOST={}",
-			self.service,
-			port.to_string(),
-			forwarding_address
-		))?;
-
-		if reply != "STREAM STATUS RESULT=OK" {
-			bail!("Could not forward session: {}", reply);
-		}
 
 		Ok(())
 	}
