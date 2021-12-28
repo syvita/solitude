@@ -6,7 +6,10 @@ use solitude::{DatagramMessage, Session};
 use std::net::UdpSocket;
 
 fn main() {
-	env_logger::builder().filter_level(log::LevelFilter::Info).parse_env("RUST_LOG").init();
+	env_logger::builder()
+		.filter_level(log::LevelFilter::Info)
+		.parse_env("RUST_LOG")
+		.init();
 
 	let arguments: Vec<String> = std::env::args().collect();
 
@@ -25,17 +28,17 @@ fn main() {
 	let destination = session.look_up(hostname).unwrap();
 
 	let datagram = DatagramMessage::new("echo_client", &destination, b"Hello World!".to_vec());
-    info!("Sending datagram");
+	info!("Sending datagram");
 	debug!("datagram: {:x?}", datagram);
 
 	let datagram_bytes = datagram.serialize();
 
-    // Sends 10 datagrams over one second. Datagrams fail occasionally, this makes it likely that
-    // at least on will go through
-    for _ in 0..10 {
-        std::thread::sleep(std::time::Duration::from_millis(100));
+	// Sends 10 datagrams over one second. Datagrams fail occasionally, this makes it likely that
+	// at least on will go through
+	for _ in 0..10 {
+		std::thread::sleep(std::time::Duration::from_millis(100));
 
-	    udp_socket.send(&datagram_bytes).unwrap();
-	    info!("Sent datagram");
-    }
+		udp_socket.send(&datagram_bytes).unwrap();
+		info!("Sent datagram");
+	}
 }
