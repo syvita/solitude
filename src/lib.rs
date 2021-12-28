@@ -197,7 +197,16 @@ impl Session {
 			response
 		);
 
-		Ok(response)
+        let expression = regex::Regex::new(r#"(.*) RESULT=(?P<result>[^ ]*) (.*)"#)?;
+
+        let matches = expression.captures(&response).context("Could not regex SAMv3's response")?;
+
+        let result = matches.name("RESULT").context("Could not find RESULT variable in response")?.as_str();
+
+        match result {
+            "OK" => Ok(response),
+            _ => bail!(response),
+        }
 	}
 
 	pub fn look_up(&mut self, address: String) -> Result<String> {
