@@ -135,18 +135,20 @@ impl Session {
 			response
 		);
 
-		let expression = regex::Regex::new(r#"(.*) RESULT=(?P<result>[^ ]*) (.*)"#)?;
+		let expression = regex::Regex::new(r#"(REPLY|STATUS)\s(RESULT=(?P<result>[^ ]*)(.*)|([^\n]*))"#)?;
 
 		let matches = expression.captures(&response).context("Could not regex SAMv3's response")?;
-
-		let result = matches
-			.name("result")
-			.context("Could not find RESULT variable in response")?
-			.as_str();
-
-		match result {
-			"OK" => Ok(response),
-			_ => bail!(response),
+		
+		if let Some(result) = matches.name("result") {
+			let plain = result.as_str();
+			
+			if plain == "OK" {
+				Ok(response)
+			} else {
+				bail!(response)
+			}
+		} else {
+			Ok(response)
 		}
 	}
 
