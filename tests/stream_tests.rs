@@ -20,4 +20,3 @@ fn can_create_stream_session() -> Result<()> {
 
     Ok(())
 }
-
