@@ -14,7 +14,7 @@ fn can_create_datagram_session() -> Result<()> {
 
 	let test_name = "can_create_session".to_string();
 
-	let mut session = Session::new(test_name, SessionStyle::Datagram, "127.0.0.1", 0)?;
+	let mut session = Session::new_forwarding_session(test_name, SessionStyle::Datagram, "127.0.0.1", 0)?;
 
 	session.close()?;
 	Ok(())
@@ -118,8 +118,9 @@ fn create_two_udp_sockets() -> Result<(UdpSocket, UdpSocket)> {
 }
 
 fn create_two_sessions(test_name: &str, first_port: u16, second_port: u16) -> Result<(Session, Session)> {
-	let first_session = Session::new(format!("{}_first", test_name), SessionStyle::Datagram, "127.0.0.1", first_port)?;
-	let second_session = Session::new(format!("{}_second", test_name), SessionStyle::Datagram, "127.0.0.1", second_port)?;
+	let first_session = Session::new_forwarding_session(format!("{}_first", test_name), SessionStyle::Datagram, "127.0.0.1", first_port)?;
+
+	let second_session = Session::new_forwarding_session(format!("{}_second", test_name), SessionStyle::Datagram, "127.0.0.1", second_port)?;
 
 	Ok((first_session, second_session))
 }

@@ -28,8 +28,8 @@ fn service_can_be_resolved() -> Result<()> {
 }
 
 fn create_two_sessions(test_name: &str, session_style: SessionStyle, first_port: u16, second_port: u16) -> Result<(Session, Session)> {
-	let first_session = Session::new(format!("{}_first", test_name), session_style, "127.0.0.1", first_port)?;
-	let second_session = Session::new(format!("{}_second", test_name), session_style, "127.0.0.1", second_port)?;
+	let first_session = Session::new_forwarding_session(format!("{}_first", test_name), session_style, "127.0.0.1", first_port)?;
+	let second_session = Session::new_forwarding_session(format!("{}_second", test_name), session_style, "127.0.0.1", second_port)?;
 
 	Ok((first_session, second_session))
 }

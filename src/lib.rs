@@ -18,6 +18,7 @@ mod datagram;
 pub use datagram::DatagramMessage;
 
 mod stream;
+pub use stream::StreamInfo;
 
 /// Creates a SAMv3 session with local i2p daemon.
 ///
@@ -33,11 +34,48 @@ pub struct Session {
 }
 
 impl Session {
-	pub fn new(service: String, session_style: SessionStyle, forwarding_address: &str, forwarding_port: u16) -> Result<Self> {
-		debug!("creating new session with ID {}", service);
+    /// Creates a new session which forwards to the supplied address.
+    ///
+    /// Should be used for Datagram, Raw, and StreamListener.
+	pub fn new_forwarding_session(service: String, session_style: SessionStyle, forwarding_address: &str, forwarding_port: u16) -> Result<Self> {
+		debug!("creating new forwarding session with ID {}", service);
+
+        let mut session = Self::create_bare_session(service, session_style)?;
+
+        session.keys()?;
+		session.bridge(forwarding_address, forwarding_port)?;
+
+		info!("Created new SAMv3 session");
+
+		Ok(session)
+	}
+
+    /// Returns a stream that is connected to the supplied destination
+    pub fn new_client_stream(service: String, destination: String) -> Result<TcpStream> {
+        debug!("Creating new client stream");
+
+        let mut session = Self::create_bare_session(service, SessionStyle::StreamClient)?;
+        session.keys()?;
+
+        session.command(&format!(
+            "SESSION CREATE STYLE=STREAM ID={} DESTINATION={}",
+            session.service, session.private_key,
+        ))?;
+
+        session.command(&format!(
+            "STREAM CONNECT ID={} DESTINATION={}",
+            session.service, destination,
+        ))?;
+
+        Ok(session.stream)
+    }
+
+    /// Creates a session that has only done HELLO.
+    fn create_bare_session(service: String, session_style: SessionStyle) -> Result<Self> {
+        trace!("creating unbridged session with id {}", service);
 
 		let stream = TcpStream::connect("localhost:7656").context("couldn't connect to local SAM bridge")?;
-		stream.set_read_timeout(Some(Duration::from_secs(50)))?;
+		stream.set_read_timeout(Some(Duration::from_secs(500)))?;
 
 		let mut session = Session {
 			reader: BufReader::new(stream.try_clone()?),
@@ -50,14 +88,8 @@ impl Session {
 
 		session.hello()?;
 
-		session.keys()?;
-
-		session.bridge(forwarding_address, forwarding_port)?;
-
-		info!("Created new SAMv3 session");
-
-		Ok(session)
-	}
+        Ok(session)
+    }
 
 	fn hello(&mut self) -> Result<()> {
 		debug!("sam connection with ID {} is executing hello", self.service);
@@ -99,21 +131,26 @@ impl Session {
 					forwarding_address
 				))?;
 			}
-			SessionStyle::Stream => {
+			SessionStyle::StreamListener => {
 				self.command(&format!(
 					"SESSION CREATE STYLE=STREAM ID={} DESTINATION={}\n",
 					self.service, self.private_key
 				))
 				.context("Could not create session")?;
 
-				self.command(&format!(
-					"SESSION FORWARD ID={} PORT={} HOST={}",
+                let mut session_to_send_forward_command = Session::create_bare_session("none".to_owned(), SessionStyle::StreamListener).context("Couldn't create session that executes STREAM FORWARD")?;
+
+				session_to_send_forward_command.command(&format!(
+					"STREAM FORWARD ID={} PORT={} HOST={}",
 					self.service,
 					port.to_string(),
 					forwarding_address
 				))
 				.context("Could not forward session")?;
 			}
+            _ => {
+                bail!("session_style must be StreamListener, Datagram, or Raw to bridge");
+            }
 		};
 
 		Ok(())
@@ -199,7 +236,8 @@ impl Session {
 pub enum SessionStyle {
 	Datagram,
 	Raw,
-	Stream,
+	StreamListener,
+    StreamClient,
 }
 
 impl SessionStyle {
@@ -207,7 +245,7 @@ impl SessionStyle {
 		match self {
 			Self::Datagram => "DATAGRAM",
 			Self::Raw => "RAW",
-			Self::Stream => "STREAM",
+			Self::StreamListener | Self::StreamClient => "STREAM",
 		}
 	}
 }
