@@ -110,11 +110,7 @@ impl Session {
 	pub fn close(&mut self) -> Result<()> {
 		debug!("sam connection with ID {} is closing i2p", self.service);
 
-		let body = &self.command("QUIT")?;
-
-		if body != "QUIT STATUS RESULT=OK MESSAGE=bye" {
-			bail!("failed to quit, are you using an up-to-date version of i2prouter?");
-		}
+		self.command("QUIT").context("failed to quit, are you using an up-to-date version of i2prouter?")?;
 
 		Ok(())
 	}
