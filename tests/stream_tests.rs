@@ -19,7 +19,10 @@ fn can_create_stream_forwarding_session() -> Result<()> {
 
     let tcp_listener = TcpListener::bind("127.0.0.1:0")?;
 
-    let _session = Session::new_forwarding_session(test_name, SessionStyle::StreamListener, "127.0.0.1", tcp_listener.local_addr()?.port())?;
+    // let _session = Session::new_forwarding_session(test_name, SessionStyle::StreamListener, "127.0.0.1", tcp_listener.local_addr()?.port())?;
+
+    let mut session = Session::new(test_name, SessionStyle::Stream)?;
+    session.forward("127.0.0.1", tcp_listener.local_addr()?.port())?;
 
     Ok(())
 }
@@ -51,10 +54,16 @@ fn client_stream_can_send_to_listening_stream() -> Result<()> {
         };
     });
 
-    let session = Session::new_forwarding_session(test_name.to_owned(), SessionStyle::StreamListener, "127.0.0.1", port)?;
+    let mut session = Session::new(test_name.to_owned(), SessionStyle::Stream)?;
+    session.forward("127.0.0.1", port)?;
 
-    
-    let mut tcp_stream = Session::new_client_stream(format!("{}_client", test_name), session.public_key)?;
+    let client_stream_session_name = format!("{}_client", test_name);
+
+    let mut client_stream = Session::new(client_stream_session_name, SessionStyle::Stream)?;
+    client_stream.connect_stream(session.public_key)?;
+
+    let mut tcp_stream = client_stream.inner_stream();
+
     write!(tcp_stream, "Hello World!")?;
 
     Ok(())
