@@ -80,7 +80,7 @@ impl Session {
                 let mut session_to_send_forward_command = Session::new("none".to_owned(), SessionStyle::Stream).context("Couldn't create session that executes STREAM FORWARD")?;
 
 				session_to_send_forward_command.command(&format!(
-					"STREAM FORWARD ID={} PORT={} HOST={}",
+					"STREAM FORWARD ID={} PORT={} HOST={}\n",
 					self.service,
 					port.to_string(),
 					forwarding_address
@@ -95,12 +95,12 @@ impl Session {
     /// Returns a TcpStream connected to the destination.
     pub fn connect_stream(&mut self, destination: String) -> Result<()> {
         self.command(&format!(
-            "SESSION CREATE STYLE=STREAM ID={} DESTINATION={}",
+            "SESSION CREATE STYLE=STREAM ID={} DESTINATION={}\n",
             self.service, self.private_key,
         ))?;
 
         self.command(&format!(
-            "STREAM CONNECT ID={} DESTINATION={}",
+            "STREAM CONNECT ID={} DESTINATION={}\n",
             self.service, destination,
         ))?;
 
