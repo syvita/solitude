@@ -3,7 +3,9 @@ extern crate log;
 
 use solitude::{DatagramMessage, Session, SessionStyle};
 
-use std::{net::TcpListener, io::{Write, BufReader, BufRead}, thread};
+use std::io::{BufRead, BufReader, Write};
+use std::net::TcpListener;
+use std::thread;
 
 use anyhow::Result;
 
@@ -13,58 +15,58 @@ fn init() {
 
 #[test]
 fn can_create_stream_forwarding_session() -> Result<()> {
-    init();
+	init();
 
-    let test_name = "can_create_stream_forwarding_session".to_owned();
+	let test_name = "can_create_stream_forwarding_session".to_owned();
 
-    let tcp_listener = TcpListener::bind("127.0.0.1:0")?;
+	let tcp_listener = TcpListener::bind("127.0.0.1:0")?;
 
-    // let _session = Session::new_forwarding_session(test_name, SessionStyle::StreamListener, "127.0.0.1", tcp_listener.local_addr()?.port())?;
+	// let _session = Session::new_forwarding_session(test_name, SessionStyle::StreamListener, "127.0.0.1", tcp_listener.local_addr()?.port())?;
 
-    let mut session = Session::new(test_name, SessionStyle::Stream)?;
-    session.forward("127.0.0.1", tcp_listener.local_addr()?.port())?;
+	let mut session = Session::new(test_name, SessionStyle::Stream)?;
+	session.forward("127.0.0.1", tcp_listener.local_addr()?.port())?;
 
-    Ok(())
+	Ok(())
 }
 
 #[test]
 fn client_stream_can_send_to_listening_stream() -> Result<()> {
-    init();
+	init();
 
-    let test_name = "client_stream_can_send_to_listening_stream".to_owned();
+	let test_name = "client_stream_can_send_to_listening_stream".to_owned();
 
-    let tcp_listener = TcpListener::bind("127.0.0.1:0")?;
-    let port = tcp_listener.local_addr()?.port();
+	let tcp_listener = TcpListener::bind("127.0.0.1:0")?;
+	let port = tcp_listener.local_addr()?.port();
 
-    thread::spawn(move || {
-        for stream in tcp_listener.incoming() {
-            match stream {
-                Ok(stream) => {
-                    let mut buffer = String::new();
-                    let mut reader = BufReader::new(stream);
-                    reader.read_line(&mut buffer).unwrap();
-                    debug!("Received message: {}", buffer);
-                    
-                    // TODO
-                }
-                Err(e) => {
-                    debug!("failed connection: {:?}", e);
-                }
-            };
-        };
-    });
+	thread::spawn(move || {
+		for stream in tcp_listener.incoming() {
+			match stream {
+				Ok(stream) => {
+					let mut buffer = String::new();
+					let mut reader = BufReader::new(stream);
+					reader.read_line(&mut buffer).unwrap();
+					debug!("Received message: {}", buffer);
 
-    let mut session = Session::new(test_name.to_owned(), SessionStyle::Stream)?;
-    session.forward("127.0.0.1", port)?;
+					// TODO
+				}
+				Err(e) => {
+					debug!("failed connection: {:?}", e);
+				}
+			};
+		}
+	});
 
-    let client_stream_session_name = format!("{}_client", test_name);
+	let mut session = Session::new(test_name.to_owned(), SessionStyle::Stream)?;
+	session.forward("127.0.0.1", port)?;
 
-    let mut client_stream = Session::new(client_stream_session_name, SessionStyle::Stream)?;
-    client_stream.connect_stream(session.public_key)?;
+	let client_stream_session_name = format!("{}_client", test_name);
 
-    let mut tcp_stream = client_stream.inner_stream();
+	let mut client_stream = Session::new(client_stream_session_name, SessionStyle::Stream)?;
+	client_stream.connect_stream(session.public_key)?;
 
-    write!(tcp_stream, "Hello World!")?;
+	let mut tcp_stream = client_stream.inner_stream();
 
-    Ok(())
+	write!(tcp_stream, "Hello World!")?;
+
+	Ok(())
 }

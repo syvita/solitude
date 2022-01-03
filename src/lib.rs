@@ -1,8 +1,6 @@
-use std::{
-	io::{BufRead, BufReader, Write},
-	net::TcpStream,
-	time::Duration,
-};
+use std::io::{BufRead, BufReader, Write};
+use std::net::TcpStream;
+use std::time::Duration;
 
 #[macro_use]
 extern crate anyhow;
@@ -34,9 +32,9 @@ pub struct Session {
 }
 
 impl Session {
-    /// Creates a session that has only done HELLO.
-    pub fn new(service: String, session_style: SessionStyle) -> Result<Self> {
-        trace!("creating new session with id {}", service);
+	/// Creates a session that has only done HELLO.
+	pub fn new(service: String, session_style: SessionStyle) -> Result<Self> {
+		trace!("creating new session with id {}", service);
 
 		let stream = TcpStream::connect("localhost:7656").context("couldn't connect to local SAM bridge")?;
 		stream.set_read_timeout(Some(Duration::from_secs(40)))?;
@@ -51,10 +49,10 @@ impl Session {
 		};
 
 		session.hello()?;
-        session.keys()?;
+		session.keys()?;
 
-        Ok(session)
-    }
+		Ok(session)
+	}
 
 	pub fn forward(&mut self, forwarding_address: &str, port: u16) -> Result<()> {
 		debug!("sam connection with ID {} is forwarding", self.service);
@@ -77,40 +75,39 @@ impl Session {
 				))
 				.context("Could not create session")?;
 
-                let mut session_to_send_forward_command = Session::new("none".to_owned(), SessionStyle::Stream).context("Couldn't create session that executes STREAM FORWARD")?;
+				let mut session_to_send_forward_command = Session::new("none".to_owned(), SessionStyle::Stream)
+					.context("Couldn't create session that executes STREAM FORWARD")?;
 
-				session_to_send_forward_command.command(&format!(
-					"STREAM FORWARD ID={} PORT={} HOST={}\n",
-					self.service,
-					port.to_string(),
-					forwarding_address
-				))
-				.context("Could not forward session")?;
+				session_to_send_forward_command
+					.command(&format!(
+						"STREAM FORWARD ID={} PORT={} HOST={}\n",
+						self.service,
+						port.to_string(),
+						forwarding_address
+					))
+					.context("Could not forward session")?;
 			}
 		};
 
 		Ok(())
 	}
 
-    /// Returns a TcpStream connected to the destination.
-    pub fn connect_stream(&mut self, destination: String) -> Result<()> {
-        self.command(&format!(
-            "SESSION CREATE STYLE=STREAM ID={} DESTINATION={}\n",
-            self.service, self.private_key,
-        ))?;
+	/// Returns a TcpStream connected to the destination.
+	pub fn connect_stream(&mut self, destination: String) -> Result<()> {
+		self.command(&format!(
+			"SESSION CREATE STYLE=STREAM ID={} DESTINATION={}\n",
+			self.service, self.private_key,
+		))?;
 
-        self.command(&format!(
-            "STREAM CONNECT ID={} DESTINATION={}\n",
-            self.service, destination,
-        ))?;
+		self.command(&format!("STREAM CONNECT ID={} DESTINATION={}\n", self.service, destination,))?;
 
-        Ok(())
-    }
+		Ok(())
+	}
 
-    /// Consumes self and returns TcpStream connected to session
-    pub fn inner_stream(self) -> TcpStream {
-        self.stream
-    }
+	/// Consumes self and returns TcpStream connected to session
+	pub fn inner_stream(self) -> TcpStream {
+		self.stream
+	}
 
 	fn hello(&mut self) -> Result<()> {
 		debug!("sam connection with ID {} is executing hello", self.service);
@@ -153,7 +150,8 @@ impl Session {
 	pub fn close(&mut self) -> Result<()> {
 		debug!("sam connection with ID {} is closing i2p", self.service);
 
-		self.command("QUIT").context("failed to quit, are you using an up-to-date version of i2prouter?")?;
+		self.command("QUIT")
+			.context("failed to quit, are you using an up-to-date version of i2prouter?")?;
 
 		Ok(())
 	}
@@ -165,9 +163,9 @@ impl Session {
 
 		let mut response = String::new();
 
-        trace!("reading line");
+		trace!("reading line");
 		self.reader.read_line(&mut response)?;
-        trace!("read line");
+		trace!("read line");
 
 		trace!(
 			"sam connection with ID {} sent command {} and got response {}",
@@ -179,10 +177,10 @@ impl Session {
 		let expression = regex::Regex::new(r#"(REPLY|STATUS)\s(RESULT=(?P<result>[^ ]*)(.*)|([^\n]*))"#)?;
 
 		let matches = expression.captures(&response).context("Could not regex SAMv3's response")?;
-		
+
 		if let Some(result) = matches.name("result") {
 			let plain = result.as_str();
-			
+
 			if plain == "OK" {
 				Ok(response)
 			} else {
@@ -212,11 +210,11 @@ impl Session {
 	}
 }
 
-#[derive(Debug, Copy, Clone,  PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum SessionStyle {
 	Datagram,
 	Raw,
-    Stream,
+	Stream,
 }
 
 impl SessionStyle {
