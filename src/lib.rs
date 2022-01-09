@@ -75,17 +75,14 @@ impl Session {
 				))
 				.context("Could not create session")?;
 
-				let mut session_to_send_forward_command = Session::new("none".to_owned(), SessionStyle::Stream)
-					.context("Couldn't create session that executes STREAM FORWARD")?;
+                let mut new_session = Session::new(self.service.clone(), SessionStyle::Stream)?;
 
-				session_to_send_forward_command
-					.command(&format!(
-						"STREAM FORWARD ID={} PORT={} HOST={}\n",
-						self.service,
-						port.to_string(),
-						forwarding_address
-					))
-					.context("Could not forward session")?;
+                new_session.command(&format!(
+					"STREAM FORWARD ID={} PORT={} HOST={}\n",
+					self.service,
+					port.to_string(),
+					forwarding_address
+                ))?;
 			}
 		};
 
@@ -93,20 +90,17 @@ impl Session {
 	}
 
 	/// Returns a TcpStream connected to the destination.
-	pub fn connect_stream(&mut self, destination: String) -> Result<()> {
+	pub fn connect_stream(&mut self, destination: String) -> Result<TcpStream> {
 		self.command(&format!(
 			"SESSION CREATE STYLE=STREAM ID={} DESTINATION={}\n",
 			self.service, self.private_key,
 		)).context("Couldn't create session")?;
 
-        Session::execute_single_command(&format!("STREAM CONNECT ID={} DESTINATION={}\n", self.service, destination))?;
+        let mut connected_session = Session::new(self.service.to_owned(), SessionStyle::Stream)?;
 
-		Ok(())
-	}
+        connected_session.command(&format!("STREAM CONNECT ID={} DESTINATION={}\n", self.service, destination))?;
 
-	/// Consumes self and returns TcpStream connected to session
-	pub fn inner_stream(self) -> TcpStream {
-		self.stream
+		Ok(connected_session.stream)
 	}
 
 	fn hello(&mut self) -> Result<()> {
