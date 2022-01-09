@@ -39,15 +39,16 @@ fn client_stream_can_send_to_listening_stream() -> Result<()> {
 	let port = tcp_listener.local_addr()?.port();
 
 	thread::spawn(move || {
+        debug!("awaiting connections");
 		for stream in tcp_listener.incoming() {
+            debug!("received connection");
+
 			match stream {
 				Ok(stream) => {
 					let mut buffer = String::new();
 					let mut reader = BufReader::new(stream);
 					reader.read_line(&mut buffer).unwrap();
 					debug!("Received message: {}", buffer);
-
-					// TODO
 				}
 				Err(e) => {
 					debug!("failed connection: {:?}", e);
@@ -62,9 +63,7 @@ fn client_stream_can_send_to_listening_stream() -> Result<()> {
 	let client_stream_session_name = format!("{}_client", test_name);
 
 	let mut client_stream = Session::new(client_stream_session_name, SessionStyle::Stream)?;
-	client_stream.connect_stream(session.public_key)?;
-
-	let mut tcp_stream = client_stream.inner_stream();
+	let mut tcp_stream = client_stream.connect_stream(session.public_key)?;
 
 	write!(tcp_stream, "Hello World!")?;
 
