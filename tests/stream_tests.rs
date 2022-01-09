@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate log;
 
-use solitude::{DatagramMessage, Session, SessionStyle};
+use solitude::{Session, SessionStyle};
 
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpListener;

@@ -37,7 +37,7 @@ impl Session {
 		trace!("creating new session with id {}", service);
 
 		let stream = TcpStream::connect("localhost:7656").context("couldn't connect to local SAM bridge")?;
-		stream.set_read_timeout(Some(Duration::from_secs(40)))?;
+		stream.set_read_timeout(Some(Duration::from_secs(90)))?;
 
 		let mut session = Session {
 			reader: BufReader::new(stream.try_clone()?),
@@ -70,8 +70,8 @@ impl Session {
 			}
 			SessionStyle::Stream => {
 				self.command(&format!(
-					"SESSION CREATE STYLE=STREAM ID={} DESTINATION={}\n",
-					self.service, self.private_key
+					"SESSION CREATE STYLE={} ID={} DESTINATION={}\n",
+					self.session_style.to_string(), self.service, self.private_key
 				))
 				.context("Could not create session")?;
 
@@ -97,9 +97,9 @@ impl Session {
 		self.command(&format!(
 			"SESSION CREATE STYLE=STREAM ID={} DESTINATION={}\n",
 			self.service, self.private_key,
-		))?;
+		)).context("Couldn't create session")?;
 
-		self.command(&format!("STREAM CONNECT ID={} DESTINATION={}\n", self.service, destination,))?;
+        Session::execute_single_command(&format!("STREAM CONNECT ID={} DESTINATION={}\n", self.service, destination))?;
 
 		Ok(())
 	}
@@ -150,7 +150,7 @@ impl Session {
 	pub fn close(&mut self) -> Result<()> {
 		debug!("sam connection with ID {} is closing i2p", self.service);
 
-		self.command("QUIT")
+		self.command("QUIT\n")
 			.context("failed to quit, are you using an up-to-date version of i2prouter?")?;
 
 		Ok(())
@@ -163,9 +163,9 @@ impl Session {
 
 		let mut response = String::new();
 
-		trace!("reading line");
+		trace!("reading from SAM socket");
 		self.reader.read_line(&mut response)?;
-		trace!("read line");
+		trace!("read from SAM socket");
 
 		trace!(
 			"sam connection with ID {} sent command {} and got response {}",
@@ -174,14 +174,14 @@ impl Session {
 			response
 		);
 
-		let expression = regex::Regex::new(r#"(REPLY|STATUS)\s(RESULT=(?P<result>[^ ]*)(.*)|([^\n]*))"#)?;
+		let expression = regex::Regex::new(r#"(REPLY|STATUS)\s(RESULT=(?P<result>[^\s]*)(.*)|([^\n]*))"#)?;
 
 		let matches = expression.captures(&response).context("Could not regex SAMv3's response")?;
 
 		if let Some(result) = matches.name("result") {
-			let plain = result.as_str();
+			let result_str = result.as_str();
 
-			if plain == "OK" {
+			if result_str == "OK" {
 				Ok(response)
 			} else {
 				bail!(response)
@@ -190,6 +190,12 @@ impl Session {
 			Ok(response)
 		}
 	}
+
+    fn execute_single_command(command: &str) -> Result<String> {
+        let mut session = Session::new("none".to_owned(), SessionStyle::Raw)?;
+
+        session.command(command)
+    }
 
 	pub fn look_up(&mut self, address: String) -> Result<String> {
 		debug!("sam connection with ID {} is looking up address {}", self.service, address);
