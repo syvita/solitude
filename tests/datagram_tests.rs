@@ -15,7 +15,7 @@ fn can_create_datagram_session() -> Result<()> {
 	let test_name = "can_create_session".to_string();
 
 	let mut session = Session::new(test_name, SessionStyle::Datagram)?;
-	session.forward("127.0.0.1", 0)?;
+	session.forward(String::from("127.0.0.1"), 0)?;
 
 	session.close()?;
 	Ok(())
@@ -30,10 +30,10 @@ fn can_send_datagram_to_service() -> Result<()> {
 	let (udp_socket, second_udp_socket) = create_two_udp_sockets()?;
 
 	let mut session = Session::new(test_name.clone(), SessionStyle::Datagram)?;
-	session.forward("127.0.0.1", udp_socket.local_addr()?.port())?;
+	session.forward(String::from("127.0.0.1"), udp_socket.local_addr()?.port())?;
 
 	let mut second_session = Session::new(test_name.clone() + "_second", SessionStyle::Datagram)?;
-	second_session.forward("127.0.0.1", second_udp_socket.local_addr()?.port())?;
+	second_session.forward(String::from("127.0.0.1"), second_udp_socket.local_addr()?.port())?;
 
 	let destination = second_session.look_up("ME".to_string())?;
 

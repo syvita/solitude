@@ -55,7 +55,7 @@ impl Session {
 		Ok(session)
 	}
 
-	pub fn forward(&mut self, forwarding_address: &str, port: u16) -> Result<()> {
+	pub fn forward(&mut self, forwarding_address: String, port: u16) -> Result<()> {
 		debug!("sam connection with ID {} is forwarding", self.service);
 
 		match self.session_style {
@@ -66,7 +66,7 @@ impl Session {
 					&self.service,
 					&self.private_key,
 					port,
-					forwarding_address
+					&forwarding_address
 				))?;
 			}
 			SessionStyle::Stream => {
@@ -78,7 +78,7 @@ impl Session {
 				
 				let new_service = self.service.clone();
 				let new_service_port = port.to_string().clone();
-				let new_service_forwarding_address = String::from(forwarding_address);
+				let new_service_forwarding_address = forwarding_address.clone();
 				
 				thread::spawn(move || {
                 	let mut new_session = Session::new(new_service.clone(), SessionStyle::Stream).unwrap();
