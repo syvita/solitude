@@ -197,12 +197,6 @@ impl Session {
 		}
 	}
 
-	fn execute_single_command(command: &str) -> Result<String> {
-		let mut session = Session::new("none".to_owned(), SessionStyle::Raw)?;
-
-		session.command(command)
-	}
-
 	pub fn look_up(&mut self, address: String) -> Result<String> {
 		debug!("sam connection with ID {} is looking up address {}", self.service, address);
 
