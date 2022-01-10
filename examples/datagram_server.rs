@@ -19,7 +19,7 @@ fn main() -> Result<()> {
 	let port = udp_socket.local_addr()?.port();
 
 	let mut session = Session::new(String::from("echo_server"), solitude::SessionStyle::Datagram)?;
-    session.forward("127.0.0.1".to_owned(), port)?;
+	session.forward("127.0.0.1".to_owned(), port)?;
 
 	info!("Listening on i2p at {}", session.address()?);
 

@@ -23,26 +23,26 @@ fn can_create_datagram_session() -> Result<()> {
 
 #[test]
 fn can_create_raw_session() -> Result<()> {
-    init();
+	init();
 
-    let test_name = "can_create_raw_session".to_owned();
+	let test_name = "can_create_raw_session".to_owned();
 
-    let mut session = Session::new(test_name, SessionStyle::Raw)?;
+	let mut session = Session::new(test_name, SessionStyle::Raw)?;
 	session.forward("127.0.0.1".to_owned(), 0)?;
 
-    Ok(())
+	Ok(())
 }
 
 #[test]
 fn can_send_raw_datagram_to_service() -> Result<()> {
-    can_send_datagram_or_raw_to_service(SessionStyle::Raw)?;
-    Ok(())
+	can_send_datagram_or_raw_to_service(SessionStyle::Raw)?;
+	Ok(())
 }
 
 #[test]
 fn can_send_datagram_to_service() -> Result<()> {
-    can_send_datagram_or_raw_to_service(SessionStyle::Datagram)?;
-    Ok(())
+	can_send_datagram_or_raw_to_service(SessionStyle::Datagram)?;
+	Ok(())
 }
 
 fn can_send_datagram_or_raw_to_service(session_style: SessionStyle) -> Result<()> {
@@ -63,16 +63,16 @@ fn can_send_datagram_or_raw_to_service(session_style: SessionStyle) -> Result<()
 	let datagram_message = DatagramMessage::new(&test_name, &destination, [0x05, 0x15].to_vec());
 	let datagram_message_bytes = datagram_message.serialize();
 
-    // Attempt to receive the datagram on another thread
-    let handle = std::thread::spawn(move || {
-        let mut buffer = [0u8; 2048];
-        second_udp_socket.recv(&mut buffer)
-    });
+	// Attempt to receive the datagram on another thread
+	let handle = std::thread::spawn(move || {
+		let mut buffer = [0u8; 2048];
+		second_udp_socket.recv(&mut buffer)
+	});
 
 	udp_socket.send(&datagram_message_bytes)?;
 
-    // Ensure the datagram was received
-    handle.join().unwrap().unwrap();
+	// Ensure the datagram was received
+	handle.join().unwrap().unwrap();
 
 	session.close()?;
 	second_session.close()?;

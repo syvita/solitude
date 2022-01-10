@@ -24,7 +24,7 @@ fn main() -> Result<()> {
 	let port = udp_socket.local_addr()?.port();
 
 	let mut session = Session::new("echo_client".to_owned(), solitude::SessionStyle::Datagram)?;
-    session.forward("127.0.0.1".to_owned(), port)?;
+	session.forward("127.0.0.1".to_owned(), port)?;
 
 	let hostname = arguments[1].to_owned();
 
@@ -45,5 +45,5 @@ fn main() -> Result<()> {
 		info!("Sent datagram");
 	}
 
-    Ok(())
+	Ok(())
 }

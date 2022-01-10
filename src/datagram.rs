@@ -46,10 +46,7 @@ impl DatagramMessage {
 			.as_str()
 			.to_owned();
 
-		let contents = split_buffer
-            .get(1)
-			.context("could not find contents of datagram message")?
-			.to_vec();
+		let contents = split_buffer.get(1).context("could not find contents of datagram message")?.to_vec();
 
 		Ok(Self {
 			session_id: session_id.to_owned(),
