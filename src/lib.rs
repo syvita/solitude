@@ -92,7 +92,7 @@ impl Session {
 						))
 						.unwrap();
 					
-					loop {};
+                    std::thread::sleep(std::time::Duration::MAX);
 				});
 			}
 		};
