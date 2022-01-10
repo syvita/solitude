@@ -32,7 +32,7 @@ impl DatagramMessage {
 		// Split the buffer, using the first 0x0a (newline) byte as the delimiter
 		let split_buffer: Vec<&[u8]> = buffer.splitn(2, |byte| *byte == 0x0a).collect();
 
-		let header_bytes = split_buffer.iter().nth(0).context("Cannot deserialize an empty buffer")?;
+		let header_bytes = split_buffer.get(0).context("Cannot deserialize an empty buffer")?;
 
 		let header = String::from_utf8(header_bytes.to_vec())?;
 
@@ -47,8 +47,7 @@ impl DatagramMessage {
 			.to_owned();
 
 		let contents = split_buffer
-			.iter()
-			.nth(1)
+            .get(1)
 			.context("could not find contents of datagram message")?
 			.to_vec();
 
