@@ -79,8 +79,6 @@ impl Session {
 				.context("Could not create session")?;
 
 				let new_service = self.service.clone();
-				let new_service_port = port.to_string();
-				let new_service_forwarding_address = forwarding_address;
 
 				thread::spawn(move || {
 					let mut new_session = Session::new(new_service.clone(), SessionStyle::Stream).unwrap();
@@ -88,7 +86,7 @@ impl Session {
 					new_session
 						.command(&format!(
 							"STREAM FORWARD ID={} PORT={} HOST={}\n",
-							new_service, new_service_port, &new_service_forwarding_address
+							new_service, forwarding_address.to_string(), &forwarding_address
 						))
 						.unwrap();
 
