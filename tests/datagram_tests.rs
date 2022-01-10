@@ -78,7 +78,7 @@ fn can_send_datagram_or_raw_to_service(session_style: SessionStyle) -> Result<()
     }
 
 	// Ensure the datagram was received
-	handle.join().unwrap().unwrap();
+	handle.join().unwrap()?;
 
 	session.close()?;
 	second_session.close()?;
