@@ -1,6 +1,6 @@
 use solitude::{DatagramMessage, Session, SessionStyle};
 
-use std::net::UdpSocket;
+use std::{net::UdpSocket, time::Duration, thread, thread::JoinHandle};
 
 use anyhow::Result;
 
@@ -66,12 +66,16 @@ fn can_send_datagram_or_raw_to_service(session_style: SessionStyle) -> Result<()
 	let datagram_message_bytes = datagram_message.serialize();
 
 	// Attempt to receive the datagram on another thread
-	let handle = std::thread::spawn(move || {
+	let handle: JoinHandle<Result<()>> = thread::spawn(move || {
 		let mut buffer = [0u8; 2048];
-		second_udp_socket.recv(&mut buffer)
+        second_udp_socket.set_read_timeout(Some(Duration::from_secs(20)))?;
+		second_udp_socket.recv(&mut buffer)?;
+        Ok(())
 	});
 
-	udp_socket.send(&datagram_message_bytes)?;
+	for _ in 0..20 {
+        udp_socket.send(&datagram_message_bytes)?;
+    }
 
 	// Ensure the datagram was received
 	handle.join().unwrap().unwrap();
