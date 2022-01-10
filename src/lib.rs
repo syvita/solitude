@@ -38,7 +38,7 @@ impl Session {
 	pub fn new(service: String, session_style: SessionStyle) -> Result<Self> {
 		trace!("creating new session with id {}", service);
 
-		let stream = TcpStream::connect("localhost:7656").context("couldn't connect to local SAM bridge")?;
+		let stream = TcpStream::connect("localhost:5050").context("couldn't connect to local SAM bridge")?;
 		stream.set_read_timeout(Some(Duration::from_secs(90)))?;
 
 		let mut session = Session {
@@ -95,8 +95,8 @@ impl Session {
 					if let Err(error) = new_session.command(&format!(
 						"STREAM FORWARD ID={} PORT={} HOST={}\n",
 						new_service,
+                        port,
 						forwarding_address.to_string(),
-						&forwarding_address
 					)) {
 						sender.send(Err(error)).unwrap();
 						return;
