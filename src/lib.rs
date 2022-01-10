@@ -1,5 +1,6 @@
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Write, Read};
 use std::net::TcpStream;
+use std::sync::mpsc::channel;
 use std::thread;
 use std::time::Duration;
 
@@ -37,7 +38,7 @@ impl Session {
 	pub fn new(service: String, session_style: SessionStyle) -> Result<Self> {
 		trace!("creating new session with id {}", service);
 
-		let stream = TcpStream::connect("localhost:7656").context("couldn't connect to local SAM bridge")?;
+		let stream = TcpStream::connect("localhost:5050").context("couldn't connect to local SAM bridge")?;
 		stream.set_read_timeout(Some(Duration::from_secs(90)))?;
 
 		let mut session = Session {
@@ -78,26 +79,46 @@ impl Session {
 				))
 				.context("Could not create session")?;
 
+				let (sender, receiver) = channel::<Result<_>>();
+
 				let new_service = self.service.clone();
 
 				thread::spawn(move || {
-					let mut new_session = Session::new(new_service.clone(), SessionStyle::Stream).unwrap();
+					let mut new_session = match Session::new(new_service.clone(), SessionStyle::Stream) {
+						Ok(session) => session,
+						Err(error) => {
+							sender.send(Err(error)).unwrap();
+							return;
+						}
+					};
 
-					new_session
-						.command(&format!(
-							"STREAM FORWARD ID={} PORT={} HOST={}\n",
-							new_service, forwarding_address.to_string(), &forwarding_address
-						))
-						.unwrap();
+					if let Err(error) = new_session.command(&format!(
+						"STREAM FORWARD ID={} PORT={} HOST={}\n",
+						new_service,
+						forwarding_address.to_string(),
+						&forwarding_address
+					)) {
+						sender.send(Err(error)).unwrap();
+						return;
+					}
+
+					sender.send(Ok(())).unwrap();
 
 					loop {
-						if let Err(error) = new_session.command("PING") {
-							panic!("stream forwarding thread got: {}", error);
-						}
+				    	let mut buffer = [];
+				    	let read = new_session.stream.read(&mut buffer);
 						
-						std::thread::sleep(Duration::from_secs(5));
+				    	if let Err(error) = read {
+				    		panic!("stream forwarder closed with: {}", error);
+				    	}
+
+						std::thread::sleep(Duration::from_secs(2));
 					}
 				});
+
+				for _ in 0..1 {
+					receiver.recv()??;
+				}
 			}
 		};
 
