@@ -9,8 +9,10 @@ use std::thread;
 
 use anyhow::Result;
 
+use env_logger::Target;
+
 fn init() {
-	let _ = env_logger::builder().is_test(true).format_module_path(true).try_init();
+	let _ = env_logger::builder().is_test(true).format_module_path(true).target(Target::Stdout).try_init();
 }
 
 #[test]
