@@ -89,6 +89,8 @@ impl Session {
 						new_service_port,
 						&new_service_forwarding_address
 					)).unwrap();
+					
+					loop {}
 				});
 			}
 		};
