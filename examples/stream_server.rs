@@ -1,5 +1,5 @@
+use std::net::TcpListener;
 use std::io::{BufRead, BufReader};
-use net::TcpListener;
 
 #[macro_use]
 extern crate log;
