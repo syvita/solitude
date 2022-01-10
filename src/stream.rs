@@ -11,10 +11,10 @@ impl StreamInfo {
 	pub fn from_bufread<T: BufRead>(stream: &mut T) -> Result<Self> {
 		debug!("deserializing stream info");
 
-        let mut reader = BufReader::new(stream);
+		let mut reader = BufReader::new(stream);
 
-        let mut header = String::new();
-        reader.read_line(&mut header)?;
+		let mut header = String::new();
+		reader.read_line(&mut header)?;
 
 		let expression = regex::Regex::new("^[^ ]+")?;
 

@@ -91,8 +91,8 @@ impl Session {
 							new_service, new_service_port, &new_service_forwarding_address
 						))
 						.unwrap();
-					
-                    std::thread::sleep(std::time::Duration::MAX);
+
+					std::thread::sleep(std::time::Duration::MAX);
 				});
 			}
 		};
