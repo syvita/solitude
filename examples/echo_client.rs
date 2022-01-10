@@ -5,40 +5,45 @@ use solitude::{DatagramMessage, Session};
 
 use std::net::UdpSocket;
 
-fn main() {
-	// env_logger::builder()
-	// 	.filter_level(log::LevelFilter::Info)
-	// 	.parse_env("RUST_LOG")
-	// 	.init();
+use anyhow::Result;
 
-	// let arguments: Vec<String> = std::env::args().collect();
+fn main() -> Result<()> {
+	env_logger::builder()
+		.filter_level(log::LevelFilter::Info)
+		.parse_env("RUST_LOG")
+		.init();
 
-	// if arguments.len() < 2 {
-	// 	panic!("must supply I2P hostname, i.e. eva example.i2p");
-	// }
+	let arguments: Vec<String> = std::env::args().collect();
 
-	// let udp_socket = UdpSocket::bind("127.0.0.1:0").unwrap();
-	// udp_socket.connect("127.0.0.1:7655").unwrap();
-	// let port = udp_socket.local_addr().unwrap().port();
+	if arguments.len() < 2 {
+		panic!("must supply I2P hostname, i.e. eva example.i2p");
+	}
 
-	// let mut session = Session::new("echo_client".to_string(), "127.0.0.1", port).unwrap();
+	let udp_socket = UdpSocket::bind("127.0.0.1:0")?;
+	udp_socket.connect("127.0.0.1:7655")?;
+	let port = udp_socket.local_addr()?.port();
 
-	// let hostname = arguments[1].to_owned();
+	let mut session = Session::new("echo_client".to_owned(), solitude::SessionStyle::Datagram)?;
+    session.forward("127.0.0.1".to_owned(), port)?;
 
-	// let destination = session.look_up(hostname).unwrap();
+	let hostname = arguments[1].to_owned();
 
-	// let datagram = DatagramMessage::new("echo_client", &destination, b"Hello World!".to_vec());
-	// info!("Sending datagram");
-	// debug!("datagram: {:x?}", datagram);
+	let destination = session.look_up(hostname)?;
 
-	// let datagram_bytes = datagram.serialize();
+	let datagram = DatagramMessage::new("echo_client", &destination, b"Hello World!".to_vec());
+	info!("Sending datagram");
+	debug!("datagram: {:x?}", datagram);
 
-	// // Sends 10 datagrams over one second. Datagrams fail occasionally, this makes it likely that
-	// // at least on will go through
-	// for _ in 0..10 {
-	// 	std::thread::sleep(std::time::Duration::from_millis(100));
+	let datagram_bytes = datagram.serialize();
 
-	// 	udp_socket.send(&datagram_bytes).unwrap();
-	// 	info!("Sent datagram");
-	// }
+	// Sends 10 datagrams over one second. Datagrams fail occasionally, this makes it likely that
+	// at least on will go through
+	for _ in 0..10 {
+		std::thread::sleep(std::time::Duration::from_millis(100));
+
+		udp_socket.send(&datagram_bytes)?;
+		info!("Sent datagram");
+	}
+
+    Ok(())
 }
