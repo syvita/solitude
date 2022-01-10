@@ -50,7 +50,7 @@ fn can_send_datagram_to_service() -> Result<()> {
 fn can_send_datagram_or_raw_to_service(session_style: SessionStyle) -> Result<()> {
 	init();
 
-	let test_name = format!("can_send_data_to_service_{:?}", session_style);
+	let test_name = format!("can_send_data_to_service_{}", session_style.as_string());
 
 	let (udp_socket, second_udp_socket) = create_two_udp_sockets()?;
 

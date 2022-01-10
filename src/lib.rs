@@ -249,7 +249,7 @@ pub enum SessionStyle {
 }
 
 impl SessionStyle {
-	fn as_string(&self) -> &str {
+	pub fn as_string(&self) -> &str {
 		match self {
 			Self::Datagram => "DATAGRAM",
 			Self::Raw => "RAW",
