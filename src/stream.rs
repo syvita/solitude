@@ -1,3 +1,5 @@
+use std::{net::TcpStream, io::{Read, BufRead, BufReader}};
+
 use crate::*;
 
 // TODO: add FROM_PORT and TO_PORT
@@ -6,15 +8,13 @@ pub struct StreamInfo {
 }
 
 impl StreamInfo {
-	pub fn from_bytes(buffer: &[u8]) -> Result<Self> {
+	pub fn from_bufread<T: BufRead>(stream: &mut T) -> Result<Self> {
 		debug!("deserializing stream info");
 
-		// Split the buffer, using the first 0x0a (newline) byte as the delimiter
-		let split_buffer: Vec<&[u8]> = buffer.splitn(2, |byte| *byte == 0x0a).collect();
+        let mut reader = BufReader::new(stream);
 
-		let header_bytes = split_buffer.iter().nth(0).context("Cannot deserialize an empty buffer")?;
-
-		let header = String::from_utf8(header_bytes.to_vec())?;
+        let mut header = String::new();
+        reader.read_line(&mut header)?;
 
 		let expression = regex::Regex::new("^[^ ]+")?;
 
