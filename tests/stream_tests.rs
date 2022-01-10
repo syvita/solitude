@@ -39,9 +39,9 @@ fn client_stream_can_send_to_listening_stream() -> Result<()> {
 	let port = tcp_listener.local_addr()?.port();
 
 	thread::spawn(move || {
-        debug!("awaiting connections");
+		debug!("awaiting connections");
 		for stream in tcp_listener.incoming() {
-            debug!("received connection");
+			debug!("received connection");
 
 			match stream {
 				Ok(stream) => {
