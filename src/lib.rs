@@ -1,5 +1,5 @@
 use std::io::{BufRead, BufReader, Write, Read};
-use std::net::TcpStream;
+use std::net::{TcpStream, Shutdown};
 use std::sync::mpsc::channel;
 use std::thread;
 use std::time::Duration;
@@ -178,11 +178,10 @@ impl Session {
 		Ok(address.trim_end_matches('=').to_owned() + ".b32.i2p")
 	}
 
-	pub fn close(&mut self) -> Result<()> {
+	pub fn close(self) -> Result<()> {
 		debug!("sam connection with ID {} is closing i2p", self.service);
 
-		self.command("QUIT\n")
-			.context("failed to quit, are you using an up-to-date version of i2prouter?")?;
+		self.stream.shutdown(Shutdown::Both)?;
 
 		Ok(())
 	}
