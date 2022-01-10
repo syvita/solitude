@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install rust/cargo
+        run: curl https://sh.rustup.rs -sSf | sh -s -- -y
+        
+      - name: install I2Pd
+        run: sudo add-apt-repository ppa:purplei2p/i2pd -y && sudo apt-get update -y && sudo apt-get install i2pd -y
+      
+      - name: test
+        run: |
+          i2pd --daemon
+          RUST_LOG=trace $HOME/.cargo/bin/cargo test -- --test-threads 1

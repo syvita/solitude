@@ -2,7 +2,7 @@ use solitude::{DatagramMessage, Session, SessionStyle};
 
 use std::net::UdpSocket;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 fn init() {
 	let _ = env_logger::builder().is_test(true).format_module_path(true).try_init();
@@ -14,14 +14,11 @@ fn service_can_be_resolved() -> Result<()> {
 
 	let test_name = "service_can_be_resolved";
 
-	let (mut session, mut second_session) = create_two_sessions(test_name, SessionStyle::Datagram, 0, 0)?;
+	let (session, mut second_session) = create_two_sessions(test_name, SessionStyle::Datagram, 0, 0)?;
 
 	let session_address = session.address()?;
 	let name = second_session.look_up(session_address.clone())?;
 	println!("resolved {} to {}", session_address, name);
-
-	session.close()?;
-	second_session.close()?;
 
 	Ok(())
 }
