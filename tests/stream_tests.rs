@@ -21,8 +21,6 @@ fn can_create_stream_forwarding_session() -> Result<()> {
 
 	let tcp_listener = TcpListener::bind("127.0.0.1:0")?;
 
-	// let _session = Session::new_forwarding_session(test_name, SessionStyle::StreamListener, "127.0.0.1", tcp_listener.local_addr()?.port())?;
-
 	let mut session = Session::new(test_name, SessionStyle::Stream)?;
 	session.forward(String::from("127.0.0.1"), tcp_listener.local_addr()?.port())?;
 
