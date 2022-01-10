@@ -1,7 +1,7 @@
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
-use std::time::Duration;
 use std::thread;
+use std::time::Duration;
 
 #[macro_use]
 extern crate anyhow;
@@ -72,25 +72,27 @@ impl Session {
 			SessionStyle::Stream => {
 				self.command(&format!(
 					"SESSION CREATE STYLE={} ID={} DESTINATION={}\n",
-					self.session_style.to_string(), self.service, self.private_key
+					self.session_style.to_string(),
+					self.service,
+					self.private_key
 				))
 				.context("Could not create session")?;
-				
+
 				let new_service = self.service.clone();
 				let new_service_port = port.to_string().clone();
 				let new_service_forwarding_address = forwarding_address.clone();
-				
+
 				thread::spawn(move || {
-                	let mut new_session = Session::new(new_service.clone(), SessionStyle::Stream).unwrap();
-                	
-                	new_session.command(&format!(
-						"STREAM FORWARD ID={} PORT={} HOST={}\n",
-						new_service,
-						new_service_port,
-						&new_service_forwarding_address
-					)).unwrap();
+					let mut new_session = Session::new(new_service.clone(), SessionStyle::Stream).unwrap();
+
+					new_session
+						.command(&format!(
+							"STREAM FORWARD ID={} PORT={} HOST={}\n",
+							new_service, new_service_port, &new_service_forwarding_address
+						))
+						.unwrap();
 					
-					loop {}
+					loop {};
 				});
 			}
 		};
@@ -103,11 +105,12 @@ impl Session {
 		self.command(&format!(
 			"SESSION CREATE STYLE=STREAM ID={} DESTINATION={}\n",
 			self.service, self.private_key,
-		)).context("Couldn't create session")?;
+		))
+		.context("Couldn't create session")?;
 
-        let mut connected_session = Session::new(self.service.to_owned(), SessionStyle::Stream)?;
+		let mut connected_session = Session::new(self.service.to_owned(), SessionStyle::Stream)?;
 
-        connected_session.command(&format!("STREAM CONNECT ID={} DESTINATION={}\n", self.service, destination))?;
+		connected_session.command(&format!("STREAM CONNECT ID={} DESTINATION={}\n", self.service, destination))?;
 
 		Ok(connected_session.stream)
 	}
@@ -194,11 +197,11 @@ impl Session {
 		}
 	}
 
-    fn execute_single_command(command: &str) -> Result<String> {
-        let mut session = Session::new("none".to_owned(), SessionStyle::Raw)?;
+	fn execute_single_command(command: &str) -> Result<String> {
+		let mut session = Session::new("none".to_owned(), SessionStyle::Raw)?;
 
-        session.command(command)
-    }
+		session.command(command)
+	}
 
 	pub fn look_up(&mut self, address: String) -> Result<String> {
 		debug!("sam connection with ID {} is looking up address {}", self.service, address);
