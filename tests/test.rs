@@ -1,8 +1,6 @@
-use solitude::{DatagramMessage, Session, SessionStyle};
+use solitude::{Session, SessionStyle};
 
-use std::net::UdpSocket;
-
-use anyhow::{Context, Result};
+use anyhow::Result;
 
 fn init() {
 	let _ = env_logger::builder().is_test(true).format_module_path(true).try_init();
