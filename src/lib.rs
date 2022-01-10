@@ -62,7 +62,7 @@ impl Session {
 			SessionStyle::Datagram | SessionStyle::Raw => {
 				self.command(&format!(
 					"SESSION CREATE STYLE={} ID={} DESTINATION={} PORT={} HOST={}\n",
-					self.session_style.to_string(),
+					self.session_style.as_string(),
 					&self.service,
 					&self.private_key,
 					port,
@@ -72,7 +72,7 @@ impl Session {
 			SessionStyle::Stream => {
 				self.command(&format!(
 					"SESSION CREATE STYLE={} ID={} DESTINATION={}\n",
-					self.session_style.to_string(),
+					self.session_style.as_string(),
 					self.service,
 					self.private_key
 				))
@@ -224,7 +224,7 @@ pub enum SessionStyle {
 }
 
 impl SessionStyle {
-	fn to_string(&self) -> &str {
+	fn as_string(&self) -> &str {
 		match self {
 			Self::Datagram => "DATAGRAM",
 			Self::Raw => "RAW",
