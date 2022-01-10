@@ -90,7 +90,13 @@ impl Session {
 						))
 						.unwrap();
 
-					std::thread::sleep(std::time::Duration::MAX);
+					loop {
+						if let Err(error) = new_session.command("PING") {
+							panic!("stream forwarding thread got: {}", error);
+						}
+						
+						std::thread::sleep(Duration::from_secs(5));
+					}
 				});
 			}
 		};
