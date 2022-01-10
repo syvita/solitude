@@ -1,4 +1,4 @@
-use std::{io::Read, net::TcpListener};
+use std::{io::{BufRead, BufReader}, net::TcpListener};
 
 use solitude::{Session, SessionStyle, StreamInfo};
 
@@ -20,12 +20,13 @@ fn main() -> Result<()> {
 
     for stream in tcp_listener.incoming() {
         if let Ok(mut stream) = stream {
-            let mut buffer = [0u8; 2048];
-            let length = stream.read(&mut buffer)?;
-            let buffer = &buffer[..length];
+            let mut reader = BufReader::new(&mut stream);
+            let stream_info = StreamInfo::from_bufread(&mut reader)?;
 
-            let stream_info = StreamInfo::from_bytes(&buffer)?;
-            println!("received message from {}", stream_info.destination);
+            let mut data = String::new();
+            reader.read_line(&mut data)?;
+            
+            println!("received: \"{}\" from {}", data, stream_info.destination);
         }
     }
 
