@@ -12,27 +12,50 @@ fn init() {
 fn can_create_datagram_session() -> Result<()> {
 	init();
 
-	let test_name = "can_create_session".to_string();
+	let test_name = "can_create_datagram_session".to_owned();
 
 	let mut session = Session::new(test_name, SessionStyle::Datagram)?;
-	session.forward(String::from("127.0.0.1"), 0)?;
+	session.forward("127.0.0.1".to_owned(), 0)?;
 
 	session.close()?;
 	Ok(())
 }
 
 #[test]
+fn can_create_raw_session() -> Result<()> {
+    init();
+
+    let test_name = "can_create_raw_session".to_owned();
+
+    let mut session = Session::new(test_name, SessionStyle::Raw)?;
+	session.forward("127.0.0.1".to_owned(), 0)?;
+
+    Ok(())
+}
+
+#[test]
+fn can_send_raw_datagram_to_service() -> Result<()> {
+    can_send_datagram_or_raw_to_service(SessionStyle::Raw)?;
+    Ok(())
+}
+
+#[test]
 fn can_send_datagram_to_service() -> Result<()> {
+    can_send_datagram_or_raw_to_service(SessionStyle::Datagram)?;
+    Ok(())
+}
+
+fn can_send_datagram_or_raw_to_service(session_style: SessionStyle) -> Result<()> {
 	init();
 
 	let test_name = "can_send_data_to_service".to_string();
 
 	let (udp_socket, second_udp_socket) = create_two_udp_sockets()?;
 
-	let mut session = Session::new(test_name.clone(), SessionStyle::Datagram)?;
+	let mut session = Session::new(test_name.clone(), session_style)?;
 	session.forward(String::from("127.0.0.1"), udp_socket.local_addr()?.port())?;
 
-	let mut second_session = Session::new(test_name.clone() + "_second", SessionStyle::Datagram)?;
+	let mut second_session = Session::new(test_name.clone() + "_second", session_style)?;
 	second_session.forward(String::from("127.0.0.1"), second_udp_socket.local_addr()?.port())?;
 
 	let destination = second_session.look_up("ME".to_string())?;
@@ -40,7 +63,16 @@ fn can_send_datagram_to_service() -> Result<()> {
 	let datagram_message = DatagramMessage::new(&test_name, &destination, [0x05, 0x15].to_vec());
 	let datagram_message_bytes = datagram_message.serialize();
 
+    // Attempt to receive the datagram on another thread
+    let handle = std::thread::spawn(move || {
+        let mut buffer = [0u8; 2048];
+        second_udp_socket.recv(&mut buffer)
+    });
+
 	udp_socket.send(&datagram_message_bytes)?;
+
+    // Ensure the datagram was received
+    handle.join().unwrap().unwrap();
 
 	session.close()?;
 	second_session.close()?;
