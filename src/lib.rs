@@ -79,8 +79,8 @@ impl Session {
 				.context("Could not create session")?;
 
 				let new_service = self.service.clone();
-				let new_service_port = port.to_string().clone();
-				let new_service_forwarding_address = forwarding_address.clone();
+				let new_service_port = port.to_string();
+				let new_service_forwarding_address = forwarding_address;
 
 				thread::spawn(move || {
 					let mut new_session = Session::new(new_service.clone(), SessionStyle::Stream).unwrap();
