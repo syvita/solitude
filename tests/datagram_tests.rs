@@ -1,8 +1,8 @@
 use solitude::{DatagramMessage, Session, SessionStyle};
 
-use std::{net::UdpSocket, time::Duration, thread, thread::JoinHandle};
+use std::{net::UdpSocket, time::Duration, thread};
 
-use anyhow::Result;
+use anyhow::{Result, Context};
 
 use env_logger::Target;
 
@@ -37,52 +37,61 @@ fn can_create_raw_session() -> Result<()> {
 
 #[test]
 fn can_send_raw_datagram_to_service() -> Result<()> {
-	can_send_datagram_or_raw_to_service(SessionStyle::Raw)?;
+	can_send_datagram_or_raw_to_service("can_send_raw_datagram_to_service", SessionStyle::Raw)?;
 	Ok(())
 }
 
 #[test]
 fn can_send_datagram_to_service() -> Result<()> {
-	can_send_datagram_or_raw_to_service(SessionStyle::Datagram)?;
+	can_send_datagram_or_raw_to_service("can_send_datagram_to_service", SessionStyle::Datagram)?;
 	Ok(())
 }
 
-fn can_send_datagram_or_raw_to_service(session_style: SessionStyle) -> Result<()> {
+fn can_send_datagram_or_raw_to_service(name: &str, session_style: SessionStyle) -> Result<()> {
 	init();
 
-	let test_name = format!("can_send_data_to_service_{}", session_style.as_string());
+	let server_socket = UdpSocket::bind("127.0.0.1:0")?;
+	server_socket.connect("127.0.0.1:7655")?;
 
-	let (udp_socket, second_udp_socket) = create_two_udp_sockets()?;
+	let server_port = server_socket.local_addr()?.port();
 
-	let mut session = Session::new(test_name.clone(), session_style)?;
-	session.forward(String::from("127.0.0.1"), udp_socket.local_addr()?.port())?;
+	let mut server_session = Session::new(format!("{}_server", name), session_style)?;
+	server_session.forward("127.0.0.1".to_owned(), server_port)?;
 
-	let mut second_session = Session::new(test_name.clone() + "_second", session_style)?;
-	second_session.forward(String::from("127.0.0.1"), second_udp_socket.local_addr()?.port())?;
+	println!("server on 127.0.0.1:{} or {}", server_port, server_session.address()?);
+	
+	//I2Pd can take a while to shuffle...
+	thread::sleep(Duration::from_secs(3));
+	
+	let client_socket = UdpSocket::bind("127.0.0.1:0")?;
+	client_socket.connect("127.0.0.1:7655")?;
 
-	let destination = second_session.look_up("ME".to_string())?;
+	let client_port = client_socket.local_addr()?.port();
 
-	let datagram_message = DatagramMessage::new(&test_name, &destination, [0x05, 0x15].to_vec());
-	let datagram_message_bytes = datagram_message.serialize();
+	let mut client_session = Session::new(format!("{}_client", name), session_style)?;
+	client_session.forward("127.0.0.1".to_owned(), client_port)?;
 
-	// Attempt to receive the datagram on another thread
-	let handle: JoinHandle<Result<()>> = thread::spawn(move || {
+	println!("client on 127.0.0.1:{} or {}", client_port, client_session.address()?);
+	
+	let datagram = DatagramMessage::new(&format!("{}_client", name), &server_session.public_key, b"Hello World!".to_vec());
+	let datagram_bytes = datagram.serialize();
+
+	let handle = thread::spawn(move || -> Result<()> {
 		let mut buffer = [0u8; 2048];
-        second_udp_socket.set_read_timeout(Some(Duration::from_secs(20)))?;
-		second_udp_socket.recv(&mut buffer)?;
-        Ok(())
+		
+		server_socket.set_read_timeout(Some(Duration::from_secs(20))).context("failed to set timeout")?;
+		server_socket.recv(&mut buffer).context("failed to receive")?;
+		
+		Ok(())
 	});
+	
+	for _ in 0..10 {
+		thread::sleep(Duration::from_millis(100));
+		let _ = client_socket.send(&datagram_bytes).context("failed to send")?;
+	}
 
-	for _ in 0..20 {
-        udp_socket.send(&datagram_message_bytes)?;
-    }
-
-	// Ensure the datagram was received
-	handle.join().unwrap()?;
-
-	session.close()?;
-	second_session.close()?;
-
+	handle.join().unwrap().context("bad result (?)")?;
+	
 	Ok(())
 }
 
@@ -147,14 +156,4 @@ fn can_deserialize_datagram_message() -> Result<()> {
 	assert_eq!(datagram_message_after_deserialization.destination, destination_string);
 
 	Ok(())
-}
-
-fn create_two_udp_sockets() -> Result<(UdpSocket, UdpSocket)> {
-	let first_udp_socket = UdpSocket::bind("127.0.0.1:0")?;
-	let second_udp_socket = UdpSocket::bind("127.0.0.1:0")?;
-
-	first_udp_socket.connect("127.0.0.1:7655")?;
-	second_udp_socket.connect("127.0.0.1:7655")?;
-
-	Ok((first_udp_socket, second_udp_socket))
 }
