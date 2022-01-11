@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+
 use solitude::{DatagramMessage, Session, SessionStyle};
 
 use std::{net::UdpSocket, time::Duration, thread};
@@ -58,7 +61,7 @@ fn can_send_datagram_or_raw_to_service(name: &str, session_style: SessionStyle) 
 	let mut server_session = Session::new(format!("{}_server", name), session_style)?;
 	server_session.forward("127.0.0.1".to_owned(), server_port)?;
 
-	println!("server on 127.0.0.1:{} or {}", server_port, server_session.address()?);
+	info!("server on 127.0.0.1:{} or {}", server_port, server_session.address()?);
 	
 	//I2Pd can take a while to shuffle...
 	thread::sleep(Duration::from_secs(3));
@@ -71,7 +74,7 @@ fn can_send_datagram_or_raw_to_service(name: &str, session_style: SessionStyle) 
 	let mut client_session = Session::new(format!("{}_client", name), session_style)?;
 	client_session.forward("127.0.0.1".to_owned(), client_port)?;
 
-	println!("client on 127.0.0.1:{} or {}", client_port, client_session.address()?);
+	info!("client on 127.0.0.1:{} or {}", client_port, client_session.address()?);
 	
 	let datagram = DatagramMessage::new(&format!("{}_client", name), &server_session.public_key, b"Hello World!".to_vec());
 	let datagram_bytes = datagram.serialize();
