@@ -79,7 +79,7 @@ fn can_send_datagram_or_raw_to_service(name: &str, session_style: SessionStyle) 
 	let handle = thread::spawn(move || -> Result<()> {
 		let mut buffer = [0u8; 2048];
 		
-		server_socket.set_read_timeout(Some(Duration::from_secs(20))).context("failed to set timeout")?;
+		server_socket.set_read_timeout(Some(Duration::from_secs(40))).context("failed to set timeout")?;
 		server_socket.recv(&mut buffer).context("failed to receive")?;
 		
 		Ok(())
