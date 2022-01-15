@@ -5,7 +5,7 @@ use solitude::{Session, SessionStyle};
 
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpListener;
-use std::thread;
+use std::{time::Duration, thread};
 
 use anyhow::Result;
 
@@ -13,6 +13,8 @@ use env_logger::Target;
 
 fn init() {
 	let _ = env_logger::builder().is_test(true).format_module_path(true).target(Target::Stdout).try_init();
+	
+	thread::sleep(Duration::from_secs(10));
 }
 
 #[test]
