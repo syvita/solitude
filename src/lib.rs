@@ -1,8 +1,8 @@
-use std::{
-	io::{BufRead, BufReader, Write},
-	net::TcpStream,
-	time::Duration,
-};
+use std::io::{BufRead, BufReader, Write, Read};
+use std::net::{TcpStream, Shutdown};
+use std::sync::mpsc::channel;
+use std::thread;
+use std::time::Duration;
 
 #[macro_use]
 extern crate anyhow;
@@ -14,6 +14,12 @@ use anyhow::{Context, Result};
 use data_encoding::{Specification, BASE32};
 use sha2::{Digest, Sha256};
 
+mod datagram;
+pub use datagram::DatagramMessage;
+
+mod stream;
+pub use stream::StreamInfo;
+
 /// Creates a SAMv3 session with local i2p daemon.
 ///
 /// Forwards all connections to a server supplied by the user.
@@ -21,35 +27,117 @@ use sha2::{Digest, Sha256};
 pub struct Session {
 	reader: BufReader<TcpStream>,
 	stream: TcpStream,
+	session_style: SessionStyle,
 	pub public_key: String,
 	private_key: String,
 	pub service: String,
 }
 
 impl Session {
-	pub fn new(service: String, forwarding_address: &str, forwarding_port: u16) -> Result<Self> {
-		debug!("creating new session with ID {}", service);
+	/// Creates a session that has only done HELLO.
+	pub fn new(service: String, session_style: SessionStyle) -> Result<Self> {
+		trace!("creating new session with id {}", service);
 
 		let stream = TcpStream::connect("localhost:7656").context("couldn't connect to local SAM bridge")?;
-		stream.set_read_timeout(Some(Duration::from_secs(50)))?;
+		stream.set_read_timeout(Some(Duration::from_secs(90)))?;
 
 		let mut session = Session {
 			reader: BufReader::new(stream.try_clone()?),
 			stream,
+			session_style: session_style.to_owned(),
 			public_key: String::new(),
 			private_key: String::new(),
 			service,
 		};
 
 		session.hello()?;
-
 		session.keys()?;
 
-		session.bridge(forwarding_address, forwarding_port)?;
-
-		info!("Created new SAMv3 session");
-
 		Ok(session)
+	}
+
+	pub fn forward(&mut self, forwarding_address: String, port: u16) -> Result<()> {
+		debug!("sam connection with ID {} is forwarding", self.service);
+
+		match self.session_style {
+			SessionStyle::Datagram | SessionStyle::Raw => {
+				self.command(&format!(
+					"SESSION CREATE STYLE={} ID={} DESTINATION={} PORT={} HOST={}\n",
+					self.session_style.as_string(),
+					&self.service,
+					&self.private_key,
+					port,
+					&forwarding_address
+				))?;
+			}
+			SessionStyle::Stream => {
+				self.command(&format!(
+					"SESSION CREATE STYLE={} ID={} DESTINATION={}\n",
+					self.session_style.as_string(),
+					self.service,
+					self.private_key
+				))
+				.context("Could not create session")?;
+
+				let (sender, receiver) = channel::<Result<_>>();
+
+				let new_service = self.service.clone();
+
+				thread::spawn(move || {
+					let mut new_session = match Session::new(new_service.clone(), SessionStyle::Stream) {
+						Ok(session) => session,
+						Err(error) => {
+							sender.send(Err(error)).unwrap();
+							return;
+						}
+					};
+
+					if let Err(error) = new_session.command(&format!(
+						"STREAM FORWARD ID={} PORT={} HOST={}\n",
+						new_service,
+                        port,
+						forwarding_address.to_string(),
+					)) {
+						sender.send(Err(error)).unwrap();
+						return;
+					}
+
+					sender.send(Ok(())).unwrap();
+
+					loop {
+				    	let mut buffer = [];
+				    	let read = new_session.stream.read(&mut buffer);
+						
+				    	if let Err(error) = read {
+				    		panic!("stream forwarder closed with: {}", error);
+				    	}
+
+						std::thread::sleep(Duration::from_secs(2));
+					}
+				});
+
+				for _ in 0..1 {
+					receiver.recv()??;
+				}
+			}
+		};
+
+		Ok(())
+	}
+
+	/// Returns a TcpStream connected to the destination.
+	pub fn connect_stream(&mut self, destination: String) -> Result<TcpStream> {
+		self.command(&format!(
+			"SESSION CREATE STYLE=STREAM ID={} DESTINATION={}\n",
+			self.service, self.private_key,
+		))
+		.context("Couldn't create session")?;
+
+		let mut connected_session = Session::new(self.service.to_owned(), SessionStyle::Stream)?;
+
+		connected_session.command(&format!("STREAM CONNECT ID={} DESTINATION={}\n", self.service, destination))?;
+
+		Ok(connected_session.stream)
 	}
 
 	fn hello(&mut self) -> Result<()> {
@@ -78,23 +166,6 @@ impl Session {
 		Ok(())
 	}
 
-	fn bridge(&mut self, forwarding_address: &str, port: u16) -> Result<()> {
-		debug!("sam connection with ID {} is making a bridge", self.service);
-
-		let expression = regex::Regex::new(r#"SESSION STATUS RESULT=OK DESTINATION=([^\n]*)"#)?;
-
-		let body = &self.command(&format!(
-			"SESSION CREATE STYLE=DATAGRAM ID={} DESTINATION={} PORT={} HOST={}\n",
-			&self.service, &self.private_key, port, forwarding_address
-		))?;
-
-		if !expression.is_match(body) {
-			bail!("didn't receive a hello response from i2p")
-		}
-
-		Ok(())
-	}
-
 	pub fn address(&self) -> Result<String> {
 		let public_key_bytes = decode_base_64(&self.public_key)?;
 
@@ -107,10 +178,10 @@ impl Session {
 		Ok(address.trim_end_matches('=').to_owned() + ".b32.i2p")
 	}
 
-	pub fn close(&mut self) -> Result<()> {
+	pub fn close(self) -> Result<()> {
 		debug!("sam connection with ID {} is closing i2p", self.service);
 
-		self.command("QUIT").context("failed to quit, are you using an up-to-date version of i2prouter?")?;
+		self.stream.shutdown(Shutdown::Both)?;
 
 		Ok(())
 	}
@@ -122,7 +193,9 @@ impl Session {
 
 		let mut response = String::new();
 
+		trace!("reading from SAM socket");
 		self.reader.read_line(&mut response)?;
+		trace!("read from SAM socket");
 
 		trace!(
 			"sam connection with ID {} sent command {} and got response {}",
@@ -131,14 +204,14 @@ impl Session {
 			response
 		);
 
-		let expression = regex::Regex::new(r#"(REPLY|STATUS)\s(RESULT=(?P<result>[^ ]*)(.*)|([^\n]*))"#)?;
+		let expression = regex::Regex::new(r#"(REPLY|STATUS)\s(RESULT=(?P<result>[^\s]*)(.*)|([^\n]*))"#)?;
 
 		let matches = expression.captures(&response).context("Could not regex SAMv3's response")?;
-		
+
 		if let Some(result) = matches.name("result") {
-			let plain = result.as_str();
-			
-			if plain == "OK" {
+			let result_str = result.as_str();
+
+			if result_str == "OK" {
 				Ok(response)
 			} else {
 				bail!(response)
@@ -167,53 +240,20 @@ impl Session {
 	}
 }
 
-#[derive(Debug, PartialEq)]
-pub struct DatagramMessage {
-	pub session_id: String,
-	pub destination: String,
-	pub contents: Vec<u8>,
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum SessionStyle {
+	Datagram,
+	Raw,
+	Stream,
 }
 
-impl DatagramMessage {
-	pub fn new(session_id: &str, destination: &str, contents: Vec<u8>) -> Self {
-		Self {
-			session_id: session_id.to_owned(),
-			destination: destination.to_owned(),
-			contents,
+impl SessionStyle {
+	pub fn as_string(&self) -> &str {
+		match self {
+			Self::Datagram => "DATAGRAM",
+			Self::Raw => "RAW",
+			Self::Stream => "STREAM",
 		}
-	}
-
-	pub fn serialize(&self) -> Vec<u8> {
-		debug!("serializing datagram message");
-
-		let header = format!("3.0 {} {}\n", self.session_id, self.destination);
-		let mut bytes = header.as_bytes().to_vec();
-		bytes.append(&mut self.contents.clone());
-
-		bytes
-	}
-
-	pub fn from_bytes(session_id: &str, buffer: &[u8]) -> Result<Self> {
-		debug!("deserializing datagram message");
-
-		// Split the buffer, using the first 0x0a (newline) byte as the delimiter
-		let split_buffer: Vec<&[u8]> = buffer.splitn(2, |byte| *byte == 0x0a).collect();
-
-		let destination_bytes = split_buffer.iter().nth(0).context("Cannot deserialize an empty buffer")?;
-
-		let destination = String::from_utf8(destination_bytes.to_vec())?;
-
-		let contents = split_buffer
-			.iter()
-			.nth(1)
-			.context("could not find contents of datagram message")?
-			.to_vec();
-
-		Ok(Self {
-			session_id: session_id.to_owned(),
-			destination,
-			contents,
-		})
 	}
 }
 
