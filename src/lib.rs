@@ -29,7 +29,7 @@ pub struct Session {
 	stream: TcpStream,
 	session_style: SessionStyle,
 	pub public_key: String,
-	private_key: String,
+	pub private_key: String,
 	pub service: String,
 }
 
@@ -52,6 +52,26 @@ impl Session {
 
 		session.hello()?;
 		session.keys()?;
+
+		Ok(session)
+	}
+	
+	pub fn from(service: String, session_style: SessionStyle, public_key: String, private_key: String) -> Result<Self> {
+		trace!("restoring session with id {} and public_key {}", service, public_key);
+
+		let stream = TcpStream::connect("localhost:7656").context("couldn't connect to local SAM bridge")?;
+		stream.set_read_timeout(Some(Duration::from_secs(90)))?;
+
+		let mut session = Session {
+			reader: BufReader::new(stream.try_clone()?),
+			stream,
+			session_style: session_style.to_owned(),
+			public_key,
+			private_key,
+			service,
+		};
+
+		session.hello()?;
 
 		Ok(session)
 	}
