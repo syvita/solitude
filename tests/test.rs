@@ -27,6 +27,25 @@ fn service_can_be_resolved() -> Result<()> {
 	Ok(())
 }
 
+#[test]
+fn session_can_be_restored() -> Result<()> {
+	init();
+
+	let test_name = "session_can_be_restored".to_owned();
+
+	let (address, public_key, private_key) = {
+		let session = Session::new(test_name.to_owned(), SessionStyle::Stream)?;
+		
+		(session.address()?, session.public_key, session.private_key)
+	};
+
+	let session = Session::from(format!("{}_restore", test_name), SessionStyle::Stream, public_key, private_key)?;
+	
+	assert!(address == session.address()?);
+
+	Ok(())
+}
+
 fn create_two_sessions(test_name: &str, session_style: SessionStyle, first_port: u16, second_port: u16) -> Result<(Session, Session)> {
 	let mut first_session = Session::new(format!("{}_first", test_name), session_style)?;
 	first_session.forward(String::from("127.0.0.1"), first_port)?;
