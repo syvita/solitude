@@ -8,10 +8,10 @@ pub struct DatagramMessage {
 }
 
 impl DatagramMessage {
-	pub fn new(session_id: &str, destination: &str, contents: Vec<u8>) -> Self {
+	pub fn new<S: Into<String>>(session_id: S, destination: S, contents: Vec<u8>) -> Self {
 		Self {
-			session_id: session_id.to_owned(),
-			destination: destination.to_owned(),
+			session_id: session_id.into(),
+			destination: destination.into(),
 			contents,
 		}
 	}
@@ -26,7 +26,7 @@ impl DatagramMessage {
 		bytes
 	}
 
-	pub fn from_bytes(session_id: &str, buffer: &[u8]) -> Result<Self> {
+	pub fn from_bytes<S: Into<String>>(session_id: S, buffer: &[u8]) -> Result<Self> {
 		debug!("deserializing datagram message");
 
 		// Split the buffer, using the first 0x0a (newline) byte as the delimiter
@@ -49,7 +49,7 @@ impl DatagramMessage {
 		let contents = split_buffer.get(1).context("could not find contents of datagram message")?.to_vec();
 
 		Ok(Self {
-			session_id: session_id.to_owned(),
+			session_id: session_id.into(),
 			destination,
 			contents,
 		})
