@@ -16,7 +16,7 @@ jobs:
 
       - name: setup-cargo
         run: curl https://sh.rustup.rs -sSf | sh -s -- -y
-		
+
       - name: cargo test
         run: cargo build --all && cargo test --all --no-run
       # - name: install NANO
