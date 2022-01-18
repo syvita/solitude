@@ -35,8 +35,10 @@ pub struct Session {
 
 impl Session {
 	/// Creates a session that has only done HELLO.
-	pub fn new(service: String, session_style: SessionStyle) -> Result<Self> {
-		trace!("creating new session with id {}", service);
+	pub fn new<S: Into<String>>(service: S, session_style: SessionStyle) -> Result<Self> {
+		let service_string = service.into();
+		
+		trace!("creating new session with id {}", service_string);
 
 		let stream = TcpStream::connect("localhost:7656").context("couldn't connect to local SAM bridge")?;
 		stream.set_read_timeout(Some(Duration::from_secs(90)))?;
@@ -47,7 +49,7 @@ impl Session {
 			session_style: session_style.to_owned(),
 			public_key: String::new(),
 			private_key: String::new(),
-			service,
+			service: service_string,
 		};
 
 		session.hello()?;
@@ -56,8 +58,11 @@ impl Session {
 		Ok(session)
 	}
 	
-	pub fn from(service: String, session_style: SessionStyle, public_key: String, private_key: String) -> Result<Self> {
-		trace!("restoring session with id {} and public_key {}", service, public_key);
+	pub fn from<S: Into<String>>(service: S, session_style: SessionStyle, public_key: S, private_key: S) -> Result<Self> {
+		let service_string = service.into();
+		let public_key_string = public_key.into();
+		
+		trace!("restoring session with id {} and public_key {}", service_string, public_key_string);
 
 		let stream = TcpStream::connect("localhost:7656").context("couldn't connect to local SAM bridge")?;
 		stream.set_read_timeout(Some(Duration::from_secs(90)))?;
@@ -66,9 +71,9 @@ impl Session {
 			reader: BufReader::new(stream.try_clone()?),
 			stream,
 			session_style: session_style.to_owned(),
-			public_key,
-			private_key,
-			service,
+			public_key: public_key_string,
+			private_key: private_key.into(),
+			service: service_string,
 		};
 
 		session.hello()?;
@@ -76,7 +81,9 @@ impl Session {
 		Ok(session)
 	}
 
-	pub fn forward(&mut self, forwarding_address: String, port: u16) -> Result<()> {
+	pub fn forward<S: Into<String>>(&mut self, forwarding_address: S, port: u16) -> Result<()> {
+		let forwarding_address_string = forwarding_address.into();
+		
 		debug!("sam connection with ID {} is forwarding", self.service);
 
 		match self.session_style {
@@ -87,7 +94,7 @@ impl Session {
 					&self.service,
 					&self.private_key,
 					port,
-					&forwarding_address
+					forwarding_address_string
 				))?;
 			}
 			SessionStyle::Stream => {
@@ -116,7 +123,7 @@ impl Session {
 						"STREAM FORWARD ID={} PORT={} HOST={}\n",
 						new_service,
                         port,
-						forwarding_address.to_string(),
+						forwarding_address_string,
 					)) {
 						sender.send(Err(error)).unwrap();
 						return;
@@ -146,7 +153,7 @@ impl Session {
 	}
 
 	/// Returns a TcpStream connected to the destination.
-	pub fn connect_stream(&mut self, destination: String) -> Result<TcpStream> {
+	pub fn connect_stream<S: Into<String>>(&mut self, destination: S) -> Result<TcpStream> {
 		self.command(&format!(
 			"SESSION CREATE STYLE=STREAM ID={} DESTINATION={}\n",
 			self.service, self.private_key,
@@ -155,7 +162,7 @@ impl Session {
 
 		let mut connected_session = Session::new(self.service.to_owned(), SessionStyle::Stream)?;
 
-		connected_session.command(&format!("STREAM CONNECT ID={} DESTINATION={}\n", self.service, destination))?;
+		connected_session.command(&format!("STREAM CONNECT ID={} DESTINATION={}\n", self.service, destination.into()))?;
 
 		Ok(connected_session.stream)
 	}
@@ -241,12 +248,14 @@ impl Session {
 		}
 	}
 
-	pub fn look_up(&mut self, address: String) -> Result<String> {
-		debug!("sam connection with ID {} is looking up address {}", self.service, address);
+	pub fn look_up<S: Into<String>>(&mut self, address: S) -> Result<String> {
+		let address_string = address.into();
+		
+		debug!("sam connection with ID {} is looking up address {}", self.service, address_string);
 
 		let expression = regex::Regex::new(r#"NAMING REPLY RESULT=OK NAME=([^ ]*) VALUE=(?P<value>[^\n]*)\n"#)?;
 
-		let body = self.command(&format!("NAMING LOOKUP NAME={}\n", address))?;
+		let body = self.command(&format!("NAMING LOOKUP NAME={}\n", address_string))?;
 
 		let matches = expression.captures(&body).context("could not resolve domain")?;
 
