@@ -18,8 +18,8 @@ fn main() -> Result<()> {
 
 	let port = udp_socket.local_addr()?.port();
 
-	let mut session = Session::new(String::from("echo_server"), solitude::SessionStyle::Datagram)?;
-	session.forward("127.0.0.1".to_owned(), port)?;
+	let mut session = Session::new("echo_server", solitude::SessionStyle::Datagram)?;
+	session.forward("127.0.0.1", port)?;
 
 	info!("Listening on i2p at {}", session.address()?);
 
@@ -32,7 +32,7 @@ fn main() -> Result<()> {
 
 		debug!("Received datagram bytes: {:02x?}", buffer);
 
-		let received_datagram = match DatagramMessage::from_bytes("echo_server", &buffer) {
+		let received_datagram = match DatagramMessage::from_bytes("echo_server", buffer) {
 			Ok(received_datagram) => received_datagram,
 			Err(_) => {
 				debug!("Received a datagram but could not deserialize it");
