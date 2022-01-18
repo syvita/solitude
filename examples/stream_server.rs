@@ -19,9 +19,9 @@ fn main() -> Result<()> {
 	let port = tcp_listener.local_addr()?.port();
 
 	info!("Creating SAMv3 session");
-	let mut session = Session::new("stream_server_example".to_owned(), SessionStyle::Stream)?;
+	let mut session = Session::new("stream_server_example", SessionStyle::Stream)?;
 	info!("Forwarding tcp server to i2p");
-	session.forward("127.0.0.1".to_owned(), port)?;
+	session.forward("127.0.0.1", port)?;
 
 	info!("Listening on {}", session.address()?);
 
