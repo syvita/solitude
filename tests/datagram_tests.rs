@@ -19,10 +19,8 @@ fn init() {
 fn can_create_datagram_session() -> Result<()> {
 	init();
 
-	let test_name = "can_create_datagram_session".to_owned();
-
-	let mut session = Session::new(test_name, SessionStyle::Datagram)?;
-	session.forward("127.0.0.1".to_owned(), 0)?;
+	let mut session = Session::new("can_create_datagram_session", SessionStyle::Datagram)?;
+	session.forward("127.0.0.1", 0)?;
 
 	session.close()?;
 	Ok(())
@@ -32,10 +30,8 @@ fn can_create_datagram_session() -> Result<()> {
 fn can_create_raw_session() -> Result<()> {
 	init();
 
-	let test_name = "can_create_raw_session".to_owned();
-
-	let mut session = Session::new(test_name, SessionStyle::Raw)?;
-	session.forward("127.0.0.1".to_owned(), 0)?;
+	let mut session = Session::new("can_create_raw_session", SessionStyle::Raw)?;
+	session.forward("127.0.0.1", 0)?;
 
 	Ok(())
 }
@@ -61,7 +57,7 @@ fn can_send_datagram_or_raw_to_service(name: &str, session_style: SessionStyle) 
 	let server_port = server_socket.local_addr()?.port();
 
 	let mut server_session = Session::new(format!("{}_server", name), session_style)?;
-	server_session.forward("127.0.0.1".to_owned(), server_port)?;
+	server_session.forward("127.0.0.1", server_port)?;
 
 	info!("server on 127.0.0.1:{} or {}", server_port, server_session.address()?);
 	
@@ -74,11 +70,11 @@ fn can_send_datagram_or_raw_to_service(name: &str, session_style: SessionStyle) 
 	let client_port = client_socket.local_addr()?.port();
 
 	let mut client_session = Session::new(format!("{}_client", name), session_style)?;
-	client_session.forward("127.0.0.1".to_owned(), client_port)?;
+	client_session.forward("127.0.0.1", client_port)?;
 
 	info!("client on 127.0.0.1:{} or {}", client_port, client_session.address()?);
 	
-	let datagram = DatagramMessage::new(&format!("{}_client", name), &server_session.public_key, b"Hello World!".to_vec());
+	let datagram = DatagramMessage::new(format!("{}_client", name), server_session.public_key, b"Hello World!".to_vec());
 	let datagram_bytes = datagram.serialize();
 
 	let handle = thread::spawn(move || -> Result<()> {
