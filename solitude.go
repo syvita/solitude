@@ -2,6 +2,9 @@ package solitude
 
 import (
 	"bufio"
+	"crypto/sha256"
+	"encoding/base32"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net"
@@ -31,6 +34,11 @@ const (
 	Datagram sessionStyle = iota
 	Stream
 	Raw
+)
+
+var (
+	Base64 *base64.Encoding = base64.NewEncoding("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-~")
+	Base32 *base32.Encoding = base32.NewEncoding("abcdefghijklmnopqrstuvwxyz234567")
 )
 
 func (style sessionStyle) String() string {
@@ -175,6 +183,26 @@ func (session *Session) command(statment string, variables map[string]Any) (map[
 	}
 
 	return response, nil
+}
+
+func (session *Session) Address() (string, error) {
+	decoded, err := Base64.DecodeString(session.PublicKey)
+
+	if err != nil {
+		return "", err
+	}
+
+	hash := sha256.New()
+
+	hash.Write(decoded)
+
+	encoded := Base32.EncodeToString(hash.Sum(nil))
+
+	encoded = strings.TrimRight(encoded, "=")
+	encoded = strings.ToUpper(encoded)
+	encoded += ".b32.i2p"
+
+	return encoded, nil
 }
 
 func NewSession(service string, style sessionStyle, address string) (Session, error) {
