@@ -178,7 +178,7 @@ func (session *Session) command(statment string, variables map[string]Any) (map[
 
 	status, hasStatus := response["STATUS"]
 
-	if hasStatus && status == "OK" {
+	if hasStatus && status != "OK" {
 		return response, errors.New("status is not OK")
 	}
 
